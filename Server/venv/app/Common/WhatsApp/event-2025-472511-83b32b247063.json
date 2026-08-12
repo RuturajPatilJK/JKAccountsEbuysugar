@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "event-2025-472511",
+  "private_key_id": "83b32b247063d8a5efe29ec9f27391d95a5a29ba",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDaK4hyFdpEcKYd\n2YW0hzkCWrKoat/ndp5yVxaVxnC56EmTNjatm13gxK+B46MnMYpwdVOwLGdEw5/U\nimKMb59cV9M1JpLRbK3yY8D2FipHbgI0sm8Lm/EmCsJGwto9AnOkBqJ3PxZwZz8v\n63KMNWnzsIzcALUNwjW0wRdhoSxnaqG6xl5650zYehHZGovxPaFYncP8BDFkSICd\ncHIwizZbH3ezf+JVJ98XRJef1QCLYF/pBi3IAahWbKFomc9COk+URKjhpDYvSwEx\n+1RBtc3h82/Ij24FS0kRgKCz1wgCgdA1cMnPom9vVw3PcLCECzZa6K8SFwfZEwXi\ntsXeDQGDAgMBAAECggEAUEcifvBBj1twFJ280C/Nr2sWQFiLKQ2Bwgr/mX8abZ3m\nrM+PERSRV6qn9gCAQWS+TyEs+S9tlGTzQ+7j0k8kcYMziWQ3M+5slztTfnmrdvso\nvqFFsRzhgCEHWahLS5XCXYG/eGdzZ0rmekiFrsfcw7mcKzvrYzOqNWezpc37m9V3\nxIEGBTDSN04x6BXc/1Yqy3RgzyahjnFBXQe2uCWFhc9zo1gPgJkXVetC+kenuqLl\nPfPEDk87OSbIfE+Pn+6PEw/eRckSr55jgogZbVwjaRbjf84aShXSdnXep9Pv9y42\nxhNaqZBqXwkRZjUMPX0EIrnJI2sCORfCGrkNBLO8SQKBgQD0qpCfau0EFan4B739\nHGFVML3drl1f5EsSHzK8qgtsJG5BWfnRIq0+L9Hw5D0Vi/LVolLEHi8nYvKy7kdG\n6MkqUxriCRdzysZjfnZjuyFw1o5bNqxZu4UQ8s5db2YfIHMtPDD3Hz6Bd9/GXLvy\nrW19NfB4vJ4Bx7fk01IKrudHhQKBgQDkRsGSc9pQ0+D03HqOq41+uQs4S00FvVHG\ntReRtYu8dnC84BJQavsJtrnBzB2SHoPS8WRmNmIONiIBNrW6MilchkBdFZj+jj95\nVRXVxN33GTwTbTay6wbwHCUf3esBEz+2xN6d7esvpwZ+AqbJoy4J08UpjOAC6fCQ\nzrsizAe/ZwKBgGCYHnTx8BVWwD4OQHH3jG3nym4E8xRyuziyXIOj1tKhJ25hqYFp\n4V/V3VrvoTYqhHrXlTmceR1hsVP3Qui56wHswYZP9JRgkCajvPXu4Wr9KkLUuQLM\nR+LDGbpFytmrJA3N378Q9MqEmzJjVkifM8TlUMU6Il+ti+qpi5BwMRtJAoGAUucj\ne8WZXstkImlEFTZWf9RCL+KhCVmVLl4sPh25ruswzFdwL0Z6/y8eTTSM9LkiVOSX\n+sr7V3/vX5N38jQvc0vKakPiuWf9w1nUQTtrBUdj2wZJ3Dag4WjHTshwhYZxGDZt\nRtvWEwtMv0zFN+uMV8NSEmH4JPbDCEQcEGoa0jcCgYEA6cnoWxBEyRqeFhB5SaAJ\nXmgj5Be3028cGdeqyq1+t1OojbJqOvqu7vyKMXGeiT1Xxv/8rrUW5KwgWFuDkSVu\npCh/iYMGdSqOOZAWiXZaBQ7E9vGHYDgOwj/ALiP+KgGVz/AtaVTybSedkI8Ha4NV\n3/EcEojj7n+QnZpba6hcMjA=\n-----END PRIVATE KEY-----\n",
+  "client_email": "fastapidrive@event-2025-472511.iam.gserviceaccount.com",
+  "client_id": "110683641729533930803",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/fastapidrive%40event-2025-472511.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
