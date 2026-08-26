@@ -68,6 +68,8 @@ class AccountMaster(db.Model):
     logo_path = Column(String(500), nullable=True)
     Created_Date = Column(Date, nullable=True)
     Modified_Date = Column(Date, nullable=True)
+    Our_Party = Column(String(1), nullable=True)
+    Show_Ledger = Column(String(1), nullable=True)
     # Insurance = Column(Numeric(18, 2), nullable=True)
     # MsOms = Column(String(1), nullable=True)
     # loadingbyus = Column(String(1), nullable=True)

@@ -300,7 +300,9 @@ const AccountMaster = () => {
     PurchaseTDSApplicable: "Y",
     PanLink: "",
     Created_Date: new Date().toISOString().split("T")[0],
-    Modified_Date: null
+    Modified_Date: null,
+    Our_Party: "N",
+    Show_Ledger: "Y"
 
     // Insurance: 0.0,
     // MsOms: "",
@@ -1996,6 +1998,42 @@ const AccountMaster = () => {
                     <MenuItem value="N">No Limit</MenuItem>
                   </Select>
                 </FormControl>
+
+                <label htmlFor="Our_Party" style={{ marginTop: "5px" }}>Our Party :</label>
+                <Checkbox
+                  sx={{
+                    color: "primary.main",
+                    "&.Mui-checked": {
+                      color: "secondary.main",
+                    },
+                  }}
+                  id="Our_Party"
+                  name="Our_Party"
+                  checked={formData.Our_Party === "Y"}
+                  onChange={(e) => handleCheckbox(e, "string")}
+                  disabled={
+                    !isFieldEnabled("Our_Party") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                />
+
+                <label htmlFor="Show_Ledger" style={{ marginTop: "5px" }}>Show Ledger :</label>
+                <Checkbox
+                  sx={{
+                    color: "primary.main",
+                    "&.Mui-checked": {
+                      color: "secondary.main",
+                    },
+                  }}
+                  id="Show_Ledger"
+                  name="Show_Ledger"
+                  checked={formData.Show_Ledger === "Y"}
+                  onChange={(e) => handleCheckbox(e, "string")}
+                  disabled={
+                    !isFieldEnabled("Show_Ledger") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                />
 
               </Box>
 

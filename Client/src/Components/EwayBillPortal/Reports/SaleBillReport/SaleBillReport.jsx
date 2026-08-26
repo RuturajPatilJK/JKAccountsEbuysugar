@@ -20,7 +20,7 @@ import { formatReadableAmount } from "../../../../Common/FormatFunctions/FormatA
 
 const API_URL = process.env.REACT_APP_API;
 
-const CustomizeSBReport = ({ saleId, ewayBillNo, handleSaleBilReportClose }) => {
+const CustomizeSBReport = ({ saleId, ewayBillNo, handleSaleBilReportClose, hidePreview, onReady }) => {
   const companyCode = sessionStorage.getItem("Company_Code");
   const Year_Code = sessionStorage.getItem("Year_Code");
   const [invoiceData, setInvoiceData] = useState([]);
@@ -601,15 +601,19 @@ const shouldUseImage =
 
       const pdfBlob = pdf.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
-     setPdfPreview({
-  url: pdfUrl,
-  data: {
-    ...allData,
-    sale_rate: rate, 
-   Doc_No: `SB${allData?.year || ""}-${allData?.doc_no || ""}`,
-   CompanyName: displayCompanyName
-  }
-});
+      const previewData = {
+        ...allData,
+        sale_rate: rate,
+        Doc_No: `SB${allData?.year || ""}-${allData?.doc_no || ""}`,
+        CompanyName: displayCompanyName
+      };
+      setPdfPreview({
+        url: pdfUrl,
+        data: previewData
+      });
+      if (onReady) {
+        onReady(pdfBlob, previewData);
+      }
     };
   }
 
@@ -656,13 +660,13 @@ else
 
   return (
     <div id="pdf-content" className="centered-container">
-      {pdfPreview && (
+      {!hidePreview && pdfPreview && (
         <PdfPreview
            pdfData={pdfPreview.url}
   apiData={pdfPreview.data}
   label={label}
           ewayBillNo={ewayBillNo}
-          onClose={handleSaleBilReportClose} 
+          onClose={handleSaleBilReportClose}
         />
       )}
     </div>

@@ -418,6 +418,12 @@
     "pdfName": "GST_Purchase_Bill_Summary_Report",
     "whatsappMessage": "Hi, GST Utilities Purchase Bill Summary Report. Please find the details in the attached PDF for your reference."
   },
+  "EwayBillGenerationSummary": {
+    "subject": "EWayBill Generation Summary Report",
+    "body": "EWayBill Generation Summary Report",
+    "pdfName": "EWayBill_Generation_Summary_Report",
+    "whatsappMessage": "Hi, EWayBill Generation Summary Report. Please find the details in the attached PDF for your reference."
+  },
   "GSTOtherPurchaseSummary": {
     "subject": "GST Utilities Other Purchase Summary Report",
     "body": "GST Utilities Other Purchase Summary Report",
@@ -563,7 +569,7 @@
       "{sale_rate}"
     ],
     "header": "document",
-    "pdfName": "SaleBill_{Doc_No}_{LORRYNO}_{billtoname}",
+    "pdfName": "{doc_no} {LORRYNO} {billtoname}",
     "subject": "Bill No: {doc_no} | Lorry No: {LORRYNO} | Mill: {millname} | Buyer: {billtoname}",
     "body": "Dear {billtoname},\n\nPlease find attached the Sale Bill from {CompanyName}.\nLorry No: {LORRYNO}\nDriver Mobile No: {driver_no}\nJK Bill No: {Doc_No}\neWay Bill No: {EWay_Bill_No}\nMill Name: {millname}\n\nBill to: {billtoname}\nShipped to: {shiptoname}\nQuantity (Qntls): {Quantal}\nRate (Per Qntl): {salerate}\n\nFor more details or assistance please contact us:\nCustomer Care: 9881999101\nTrade Enquiry: 9371999101\nDelivery: 9326999101\nAccounts: 7378999101\n\nRegards\nTeam eBuySugar"
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -29,11 +29,16 @@ import io from "socket.io-client";
 import EWayBillNEInvoiceGen from "../EwayBillGenrateProcess/EWayBillGenrationProcess.jsx";
 import EWayBillReport from "../Reports/EWayReport/EWayBillReport.jsx";
 import SaleBillReport from "../Reports/SaleBillReport/SaleBillReport.jsx";
+import MergedBillReport from "../Reports/MergedBillReport.jsx";
 import SearchBar from "../../../Common/SearchBar/SearchBar.jsx";
 import PrintButton from "../../../Common/Buttons/Print.jsx";
 import { RingLoader } from "react-spinners";
 import CircularSpinner from "../../../Common/Spinners/CircularSpinner"
 import { formatReadableAmount } from "../../../Common/FormatFunctions/FormatAmount";
+import { generateReportPDF } from "../../../Common/ReportCommon/CommonPDFGenerator";
+import PdfPreview from "../../../Common/PDFPreview";
+import HeaderJK from "../../../Assets/HeaderJK.png";
+import FooterJK from "../../../Assets/FooterJK.png";
 
 // Table Style
 const tableCellStyleHeader = {
@@ -51,6 +56,85 @@ const tableCellStyle = {
   fontWeight: 'bold',
   whiteSpace: 'nowrap',
 };
+
+const STICKY_LEFT_WIDTHS = {
+  status: 140,
+  doNo: 100,
+  brokerName: 150,
+  vehicleNo: 120,
+  purcQty: 100,
+};
+
+const STICKY_LEFT_OFFSETS = {
+  status: 0,
+  doNo: STICKY_LEFT_WIDTHS.status,
+  brokerName: STICKY_LEFT_WIDTHS.status + STICKY_LEFT_WIDTHS.doNo,
+  vehicleNo: STICKY_LEFT_WIDTHS.status + STICKY_LEFT_WIDTHS.doNo + STICKY_LEFT_WIDTHS.brokerName,
+  purcQty: STICKY_LEFT_WIDTHS.status + STICKY_LEFT_WIDTHS.doNo + STICKY_LEFT_WIDTHS.brokerName + STICKY_LEFT_WIDTHS.vehicleNo,
+};
+
+
+const STICKY_RIGHT_WIDTHS = {
+  print: 70,
+  generateEway: 110,
+  ourEwayNo: 130,
+  portalEwayNo: 130,
+  generateSaleBillCheckbox: 60,
+  vehicleNo2: 110,
+  purcNetQntl2: 120,
+};
+const STICKY_RIGHT_OFFSETS = (() => {
+  const order = [
+    "print",
+    "generateEway",
+    "ourEwayNo",
+    "portalEwayNo",
+    "generateSaleBillCheckbox",
+    "vehicleNo2",
+    "purcNetQntl2",
+  ];
+  const offsets = {};
+  let running = 0;
+  order.forEach((key) => {
+    offsets[key] = running;
+    running += STICKY_RIGHT_WIDTHS[key];
+  });
+  return offsets;
+})();
+
+const stickyLeftHeader = (left, width) => ({
+  ...tableCellStyleHeader,
+  position: "sticky",
+  left,
+  zIndex: 3,
+  width,
+  minWidth: width,
+});
+const stickyRightHeader = (right, width) => ({
+  ...tableCellStyleHeader,
+  position: "sticky",
+  right,
+  zIndex: 3,
+  width,
+  minWidth: width,
+});
+const stickyLeftBody = (left, width) => ({
+  position: "sticky",
+  left,
+  zIndex: 2,
+  width,
+  minWidth: width,
+  backgroundColor: "#fff",
+});
+const stickyRightBody = (right, width) => ({
+  position: "sticky",
+  right,
+  zIndex: 2,
+  width,
+  minWidth: width,
+  backgroundColor: "#fff",
+});
+
 const apikey = process.env.REACT_APP_API;
 const socketURL = process.env.REACT_APP_API_URL;
 
@@ -83,6 +167,9 @@ const GenerateEwayBill = ({ fromDate }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [showEwayBillReport, setShowEwayBillReport] = useState(false);
   const [saleBilReport, setSaleBilReport] = useState(false);
+  const [showMergedReport, setShowMergedReport] = useState(false);
+  const [mergedSaleId, setMergedSaleId] = useState([]);
+  const [mergedEwayBillNo, setMergedEwayBillNo] = useState([]);
   const [ewayBillNo, setEwayBillNo] = useState([]);
   const [vehicleNo, setVehicleNo] = useState([]);
   const [doNo, setDoNo] = useState([]);
@@ -95,6 +182,8 @@ const GenerateEwayBill = ({ fromDate }) => {
   const [subtotal, setSubtotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [millAmount, setMillAmount] = useState(0);
+  const [pdfPreview, setPdfPreview] = useState(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // Fetch data from API
   useEffect(() => {
@@ -123,7 +212,9 @@ const GenerateEwayBill = ({ fromDate }) => {
         }
       );
       setData(response.data);
-      setFilteredData(response.data);
+      // filteredData is set by the [searchQuery, data] effect below whenever
+      // data changes - setting it here too just doubled the render/filter
+      // work on every fetch for no reason.
     } catch (error) {
       console.error("Error fetching data:", error);
       setData([]);
@@ -217,6 +308,13 @@ const GenerateEwayBill = ({ fromDate }) => {
     setSelectedSaleIdsForSaleBill([row.saleid]);
     setEwayBillNo([row.ewbNo]);
     setSaleBilReport(true);
+  };
+
+
+  const handleMergedPrint = (row) => {
+    setMergedSaleId([row.saleid]);
+    setMergedEwayBillNo([row.ewbNo]);
+    setShowMergedReport(true);
   };
 
   const handleClose = () => {
@@ -333,22 +431,90 @@ const GenerateEwayBill = ({ fromDate }) => {
     setStatusFilter(e.target.value);
   };
 
-  const sortedFilteredData = filterDataByStatus(filteredData).sort((a, b) => {
-    const aPending =
-      !a.salebillno ||
-      a.salebillno === 0 ||
-      !a.saleewaybillno ||
-      a.saleewaybillno === 0;
-    const bPending =
-      !b.salebillno ||
-      b.salebillno === 0 ||
-      !b.saleewaybillno ||
-      b.saleewaybillno === 0;
+  // Filtering + sorting the whole dataset is the expensive part, so only
+  // redo it when the inputs that actually affect the result change (not on
+  // every render, e.g. pagination clicks which only need to re-slice).
+  const sortedFilteredData = useMemo(
+    () =>
+      filterDataByStatus(filteredData).sort((a, b) => {
+        const aPending =
+          !a.salebillno ||
+          a.salebillno === 0 ||
+          !a.saleewaybillno ||
+          a.saleewaybillno === 0;
+        const bPending =
+          !b.salebillno ||
+          b.salebillno === 0 ||
+          !b.saleewaybillno ||
+          b.saleewaybillno === 0;
 
-    if (aPending && !bPending) return -1;
-    if (!aPending && bPending) return 1;
-    return 0;
-  });
+        if (aPending && !bPending) return -1;
+        if (!aPending && bPending) return 1;
+        return 0;
+      }),
+    [filteredData, statusFilter, selectedSaleIds]
+  );
+
+
+  const MONTH_NUMBERS = {
+    Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+    Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+  };
+  const formatDateTimeDisplay = (value) => {
+    if (!value) return "";
+    const rfcMatch = String(value).match(
+      /^\w+,\s*(\d{1,2})\s+(\w{3})\s+(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/
+    );
+    if (rfcMatch) {
+      const [, day, monName, year, hh, mm, ss] = rfcMatch;
+      const month = MONTH_NUMBERS[monName] || "01";
+      return `${day.padStart(2, "0")}/${month}/${year} ${hh}:${mm}:${ss}`;
+    }
+    const d = new Date(value);
+    if (isNaN(d)) return String(value);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
+
+  const PRINT_COLUMNS = [
+    { label: "Vehicle No", key: "vehno" },
+    { label: "Party Bill No", key: "MillInvoiceNo" },
+    { label: "Mill Name", key: "millname" },
+    { label: "Purchase Bill To Name", key: "billtoname" },
+    { label: "Quintal", key: "NETQNTL", numeric: true },
+    { label: "Date & Time", key: "EwayBillDate", isDate: true },
+    { label: "Sale Bill No", key: "salebillno" },
+    { label: "Do No", key: "DO_No" },
+    { label: "Broker Name", key: "paymenttoname" },
+  ];
+
+  const handlePrintAll = () => {
+    if (sortedFilteredData.length === 0) return;
+    setIsPrinting(true);
+
+    const rows = sortedFilteredData.map((row) =>
+      PRINT_COLUMNS.map((col) => {
+        if (col.isDate) return formatDateTimeDisplay(row[col.key]);
+        if (col.numeric) return formatReadableAmount(row[col.key] || 0);
+        return row[col.key] ?? "";
+      })
+    );
+
+    generateReportPDF({
+      title: "EWayBill Summary",
+      subtitle: `Date: ${formatDate(fromDate)}`,
+      columns: PRINT_COLUMNS.map((c) => c.label),
+      rows,
+      headerImgSrc: HeaderJK,
+      footerImgSrc: FooterJK,
+      numericCols: PRINT_COLUMNS.map((c, i) => (c.numeric ? i : null)).filter((i) => i !== null),
+      orientation: "landscape",
+      onComplete: (url) => {
+        setPdfPreview(url);
+        setIsPrinting(false);
+      },
+    });
+  };
 
   return (
     <div>
@@ -407,6 +573,13 @@ const GenerateEwayBill = ({ fromDate }) => {
         </>
       )}
 
+      {saleBilReport && (
+        <SaleBillReport
+          saleId={selectedSaleIdsForSaleBill}
+          ewayBillNo={ewayBillNo}
+        />
+      )}
+
       {showEwayBillReport && (
         <EWayBillReport
           saleId={selectedSaleIdsEWayBills}
@@ -414,10 +587,11 @@ const GenerateEwayBill = ({ fromDate }) => {
         />
       )}
 
-      {saleBilReport && (
-        <SaleBillReport
-          saleId={selectedSaleIdsForSaleBill}
-          ewayBillNo={ewayBillNo}
+      {showMergedReport && (
+        <MergedBillReport
+          saleId={mergedSaleId}
+          ewayBillNo={mergedEwayBillNo}
+          onClose={() => setShowMergedReport(false)}
         />
       )}
 
@@ -440,10 +614,12 @@ const GenerateEwayBill = ({ fromDate }) => {
               size="small"
             >
               <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
               <MenuItem value="To Be Generated">To Be Generated</MenuItem>
               <MenuItem value="eInvoice Pending">eInvoice Pending</MenuItem>
               <MenuItem value="Done">Done</MenuItem>
+
+              <MenuItem value="Pending">Pending</MenuItem>
+
             </Select>
           </FormControl>
         </Box>
@@ -487,8 +663,42 @@ const GenerateEwayBill = ({ fromDate }) => {
           >
             Generate SaleBill
           </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handlePrintAll}
+            disabled={sortedFilteredData.length === 0 || isPrinting}
+            sx={{ ml: 2 }}
+          >
+            Print
+          </Button>
         </Box>
       </Box>
+
+      {pdfPreview && (
+        <PdfPreview pdfData={pdfPreview} label="EwayBillGenerationSummary" />
+      )}
+
+      {isPrinting && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(255,255,255,0.8)",
+            zIndex: 9999,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <CircularSpinner />
+          <Typography sx={{ mt: 2, fontWeight: 700 }}>Generating PDF...</Typography>
+        </Box>
+      )}
 
       <Snackbar
         open={openSnackbar}
@@ -530,111 +740,83 @@ const GenerateEwayBill = ({ fromDate }) => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell style={tableCellStyleHeader}>Status</TableCell>
-                  <TableCell style={tableCellStyleHeader}>DO No</TableCell>
+                  <TableCell style={stickyLeftHeader(STICKY_LEFT_OFFSETS.status, STICKY_LEFT_WIDTHS.status)}>
+                    Status
+                  </TableCell>
+                  <TableCell style={stickyLeftHeader(STICKY_LEFT_OFFSETS.doNo, STICKY_LEFT_WIDTHS.doNo)}>
+                    DO No
+                  </TableCell>
+                  <TableCell style={stickyLeftHeader(STICKY_LEFT_OFFSETS.brokerName, STICKY_LEFT_WIDTHS.brokerName)}>
+                    Broker Name
+                  </TableCell>
+                  <TableCell style={stickyLeftHeader(STICKY_LEFT_OFFSETS.vehicleNo, STICKY_LEFT_WIDTHS.vehicleNo)}>
+                    Vehicle No
+                  </TableCell>
+                  <TableCell style={stickyLeftHeader(STICKY_LEFT_OFFSETS.purcQty, STICKY_LEFT_WIDTHS.purcQty)}>
+                    Purc Qty
+                  </TableCell>
+                  <TableCell style={tableCellStyleHeader}>Purchase Bill To Name</TableCell>
+                  <TableCell style={tableCellStyleHeader}>Purchase Bill No</TableCell>
+                  <TableCell style={tableCellStyleHeader}>
+                    Eway Bill Date &amp; Time
+                  </TableCell>
                   {/* <TableCell style={tableCellStyleHeader}>
-                                        <TableSortLabel
-                                            active={sortConfig.key === 'doc_no'}
-                                            direction={sortConfig.key === 'doc_no' ? sortConfig.direction : 'asc'}
-                                            onClick={() => handleSort('doc_no')}
-                                        >
-                                            Doc No
-                                        </TableSortLabel>
-                                    </TableCell> */}
-                  <TableCell style={tableCellStyleHeader}>
-                    Purc Gst No.
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    EwayBill Gst NO.
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Purc NET QNTL
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    EWay Bill NET QNTL
-                  </TableCell>
+                              <TableSortLabel
+                                  active={sortConfig.key === 'doc_no'}
+                                  direction={sortConfig.key === 'doc_no' ? sortConfig.direction : 'asc'}
+                                  onClick={() => handleSort('doc_no')}
+                              >
+                                  Doc No
+                              </TableSortLabel>
+                          </TableCell> */}
+                  <TableCell style={tableCellStyleHeader}>Purc Gst No.</TableCell>
+                  <TableCell style={tableCellStyleHeader}>EwayBill Gst NO.</TableCell>
+                  <TableCell style={tableCellStyleHeader}>Purc NET QNTL</TableCell>
+                  <TableCell style={tableCellStyleHeader}>EWay Bill NET QNTL</TableCell>
                   <TableCell style={tableCellStyleHeader}>Quintal Diff</TableCell>
-                  <TableCell style={tableCellStyleHeader}>Vehicle No</TableCell>
+
                   <TableCell style={tableCellStyleHeader}>Mill Name</TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Purchase Bill To GST
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Purchase Bill To Name
-                  </TableCell>
+                  <TableCell style={tableCellStyleHeader}>Purchase Bill To GST</TableCell>
+
                   <TableCell style={tableCellStyleHeader}>To GSTIN</TableCell>
                   {/* <TableCell style={tableCellStyleHeader}>Purchase ID</TableCell> */}
                   <TableCell style={tableCellStyleHeader}>Mill Name</TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Ship To Diff
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Ship To Pincode
-                  </TableCell>
+                  <TableCell style={tableCellStyleHeader}>Ship To Diff</TableCell>
+                  <TableCell style={tableCellStyleHeader}>Ship To Pincode</TableCell>
                   <TableCell style={tableCellStyleHeader}>Sub Total</TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Taxable Amount
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Taxable Amt Diff
-                  </TableCell>
+                  <TableCell style={tableCellStyleHeader}>Taxable Amount</TableCell>
+                  <TableCell style={tableCellStyleHeader}>Taxable Amt Diff</TableCell>
                   <TableCell style={tableCellStyleHeader}>Mill Rate</TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Mill Amount With TCS
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Purchase Tax Amount
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    EWay Bill Tax Amount
-                  </TableCell>
+                  <TableCell style={tableCellStyleHeader}>Mill Amount With TCS</TableCell>
+                  <TableCell style={tableCellStyleHeader}>Purchase Tax Amount</TableCell>
+                  <TableCell style={tableCellStyleHeader}>EWay Bill Tax Amount</TableCell>
                   {/* <TableCell style={tableCellStyleHeader}>Bill Diff</TableCell> */}
                   <TableCell style={tableCellStyleHeader}>Sale ID</TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Sale Bill No
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Purc NET QNTL
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>Vehicle No</TableCell>
-                  <TableCell style={tableCellStyleHeader}>
+                  <TableCell style={tableCellStyleHeader}>Sale Bill No</TableCell>
+
+                  <TableCell style={stickyRightHeader(STICKY_RIGHT_OFFSETS.generateSaleBillCheckbox, STICKY_RIGHT_WIDTHS.generateSaleBillCheckbox)}>
                     Generate Sale Bill
                   </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Portal EWay Bill No
+                  <TableCell style={tableCellStyleHeader}>Portal EWay Bill No</TableCell>
+                  <TableCell style={tableCellStyleHeader}>Our EWay Bill No</TableCell>
+                  <TableCell style={stickyRightHeader(STICKY_RIGHT_OFFSETS.generateEway, STICKY_RIGHT_WIDTHS.generateEway)}>
+                    Generate ewaybill
                   </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Our EWay Bill No
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Generate Eway Bills
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    Sale Bill Print
-                  </TableCell>
-                  <TableCell style={tableCellStyleHeader}>
-                    EWay Bill Print
+                  {/* <TableCell style={tableCellStyleHeader}>
+          Sale Bill Print
+        </TableCell>
+        <TableCell style={tableCellStyleHeader}>
+          EWay Bill Print
+        </TableCell> */}
+                  <TableCell style={stickyRightHeader(STICKY_RIGHT_OFFSETS.print, STICKY_RIGHT_WIDTHS.print)}>
+                    Bills
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {sortedFilteredData
-                  .sort((a, b) => {
-                    const aPending =
-                      !a.salebillno ||
-                      a.salebillno === 0 ||
-                      !a.saleewaybillno ||
-                      a.saleewaybillno === 0;
-                    const bPending =
-                      !b.salebillno ||
-                      b.salebillno === 0 ||
-                      !b.saleewaybillno ||
-                      b.saleewaybillno === 0;
-
-                    if (aPending && !bPending) return -1;
-                    if (!aPending && bPending) return 1;
-                    return 0;
-                  })
+                  // Already sorted above in the memoized sortedFilteredData -
+                  // sorting again here was pure duplicate work on every render.
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((row, index) => {
                     const isMismatched =
@@ -649,7 +831,7 @@ const GenerateEwayBill = ({ fromDate }) => {
                       <TableRow key={index}>
                         <TableCell
                           style={{
-                            ...tableCellStyle,
+                            ...stickyLeftBody(STICKY_LEFT_OFFSETS.status, STICKY_LEFT_WIDTHS.status),
                             color:
                               row.salebillno !== 0 && row.saleewaybillno === ""
                                 ? "#FFFFFF"
@@ -675,7 +857,7 @@ const GenerateEwayBill = ({ fromDate }) => {
                                     (!row.saleewaybillno ||
                                       row.saleewaybillno === 0)
                                     ? "#f8d7da"
-                                    : "transparent",
+                                    : "#fff",
                           }}
                         >
                           {row.salebillno !== 0 && row.saleewaybillno === ""
@@ -690,17 +872,38 @@ const GenerateEwayBill = ({ fromDate }) => {
                                 : "Done"}
                         </TableCell>
 
-                        <TableCell style={tableCellStyle}>
+                        <TableCell style={{ ...tableCellStyle, ...stickyLeftBody(STICKY_LEFT_OFFSETS.doNo, STICKY_LEFT_WIDTHS.doNo) }}>
                           {row.DO_No}
+                        </TableCell>
+
+                        <TableCell style={{ ...tableCellStyle, ...stickyLeftBody(STICKY_LEFT_OFFSETS.brokerName, STICKY_LEFT_WIDTHS.brokerName) }}>
+                          {row.paymenttoname}
+                        </TableCell>
+
+                        <TableCell
+                          style={{
+                            ...tableCellStyle,
+                            ...stickyLeftBody(STICKY_LEFT_OFFSETS.vehicleNo, STICKY_LEFT_WIDTHS.vehicleNo),
+                            backgroundColor: isVehicleMismatched ? "#f8d7da" : "#fff",
+                          }}
+                        >
+                          {row.vehno}
+                        </TableCell>
+
+                        <TableCell style={{ ...tableCellStyle, ...stickyLeftBody(STICKY_LEFT_OFFSETS.purcQty, STICKY_LEFT_WIDTHS.purcQty) }}>
+                          {row.NETQNTL}
+                        </TableCell>
+                        <TableCell style={tableCellStyle}>{row.purcname}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.MillInvoiceNo}</TableCell>
+
+                        <TableCell style={tableCellStyle}>
+                          {formatDateTimeDisplay(row.EwayBillDate)}
                         </TableCell>
                         {/* <TableCell style={tableCellStyle}>{row.doc_no}</TableCell> */}
                         <TableCell
                           style={{
                             ...tableCellStyle,
-                            position: "sticky",
-                            backgroundColor: isMismatched
-                              ? "#e68282"
-                              : "inherit",
+                            backgroundColor: isMismatched ? "#e68282" : "inherit",
                           }}
                         >
                           {row.Gst_No}
@@ -708,97 +911,36 @@ const GenerateEwayBill = ({ fromDate }) => {
                         <TableCell
                           style={{
                             ...tableCellStyle,
-                            backgroundColor: isMismatched
-                              ? "#e68282"
-                              : "inherit",
+                            backgroundColor: isMismatched ? "#e68282" : "inherit",
                           }}
                         >
                           {row.EwayBillGSTN}
                         </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.NETQNTL}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.EwayBillQuantity}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.qtyDiff}
-                        </TableCell>
-                        <TableCell
-                          style={{
-                            ...tableCellStyle,
-                            backgroundColor: isVehicleMismatched
-                              ? "#f8d7da"
-                              : "inherit",
-                          }}
-                        >
-                          {row.vehno}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.millname}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.billtogst}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.billtoname}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.toGSTIN}
-                        </TableCell>
+                        <TableCell style={tableCellStyle}>{row.NETQNTL}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.EwayBillQuantity}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.qtyDiff}</TableCell>
+
+                        <TableCell style={tableCellStyle}>{row.millname}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.billtogst}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.billtoname}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.toGSTIN}</TableCell>
                         {/* <TableCell style={tableCellStyle}>{row.purchaseid}</TableCell> */}
-                        <TableCell style={tableCellStyle}>
-                          {row.purcname}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.shipToDiff}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.shiptopin}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {formatReadableAmount(row.subTotal)}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {formatReadableAmount(row.taxableAmount)}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.taxableAmtDiff}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {formatReadableAmount(row.MillRate)}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {formatReadableAmount(row.MillAmountWithTCS || 0)}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {formatReadableAmount(row.MillAmount)}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.PoratalInval}
-                        </TableCell>
+
+                        <TableCell style={tableCellStyle}>{row.shipToDiff}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.shiptopin}</TableCell>
+                        <TableCell style={tableCellStyle}>{formatReadableAmount(row.subTotal)}</TableCell>
+                        <TableCell style={tableCellStyle}>{formatReadableAmount(row.taxableAmount)}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.taxableAmtDiff}</TableCell>
+                        <TableCell style={tableCellStyle}>{formatReadableAmount(row.MillRate)}</TableCell>
+                        <TableCell style={tableCellStyle}>{formatReadableAmount(row.MillAmountWithTCS || 0)}</TableCell>
+                        <TableCell style={tableCellStyle}>{formatReadableAmount(row.MillAmount)}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.PoratalInval}</TableCell>
 
                         {/* <TableCell style={tableCellStyle}>{row.TotalInvval}</TableCell> */}
-                        <TableCell style={tableCellStyle}>
-                          {row.saleid}
-                        </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.salebillno}
-                        </TableCell>
-                          <TableCell style={tableCellStyle}>
-                          {row.NETQNTL}
-                        </TableCell>
-                        <TableCell
-                          style={{
-                            ...tableCellStyle,
-                            backgroundColor: isVehicleMismatched
-                              ? "#f8d7da"
-                              : "inherit",
-                          }}
-                        >
-                          {row.vehno}
-                        </TableCell>
-                        <TableCell>
+                        <TableCell style={tableCellStyle}>{row.saleid}</TableCell>
+                        <TableCell style={tableCellStyle}>{row.salebillno}</TableCell>
+
+                        <TableCell style={stickyRightBody(STICKY_RIGHT_OFFSETS.generateSaleBillCheckbox, STICKY_RIGHT_WIDTHS.generateSaleBillCheckbox)}>
                           <Checkbox
                             checked={row.isSelected || false}
                             onChange={(e) =>
@@ -813,23 +955,20 @@ const GenerateEwayBill = ({ fromDate }) => {
                             }
                           />
                         </TableCell>
-                        <TableCell style={tableCellStyle}>
-                          {row.ewbNo}
-                        </TableCell>
+                        <TableCell style={tableCellStyle}>{row.ewbNo}</TableCell>
                         <TableCell
                           style={{
                             ...tableCellStyle,
-                            position: "sticky",
                             backgroundColor:
                               row.saleewaybillno === null ||
                                 row.saleewaybillno === ""
                                 ? "#e68282"
-                                : "inherit",
+                                : "#fff",
                           }}
                         >
                           {row.saleewaybillno}
                         </TableCell>
-                        <TableCell>
+                        <TableCell style={stickyRightBody(STICKY_RIGHT_OFFSETS.generateEway, STICKY_RIGHT_WIDTHS.generateEway)}>
                           <Button
                             variant="contained"
                             color="success"
@@ -845,27 +984,41 @@ const GenerateEwayBill = ({ fromDate }) => {
                             Generate
                           </Button>
                         </TableCell>
-                        <TableCell>
+                        {/* <TableCell>
+
+                <PrintButton
+                  onClick={() =>
+                    handleSaleBillPrint(row, "Sale Report")
+                  }
+                  disabled={true}
+                  buttonColor={
+                    row.SaleBill_Print === "Y" ? "green" : "#3b82f6"
+                  }
+                />
+              </TableCell>
+              <TableCell>
+
+                <PrintButton
+                  onClick={() =>
+                    handleEWayBillPrint(row, "EWayBill Report")
+                  }
+                  disabled={true}
+                  buttonColor={
+                    row.EWayBill_Print === "Y" ? "green" : "#3b82f6"
+                  }
+                />
+              </TableCell> */}
+                        <TableCell style={stickyRightBody(STICKY_RIGHT_OFFSETS.print, STICKY_RIGHT_WIDTHS.print)}>
                           <PrintButton
-                            onClick={() =>
-                              handleSaleBillPrint(row, "Sale Report")
-                            }
+                            onClick={() => handleMergedPrint(row)}
                             disabled={
-                              !(row.salebillno !== 0 && row.salebillno != null)
+                              !(row.salebillno !== 0 && row.salebillno != null) ||
+                              row.saleewaybillno === ""
                             }
                             buttonColor={
-                              row.SaleBill_Print === "Y" ? "green" : "#3b82f6"
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <PrintButton
-                            onClick={() =>
-                              handleEWayBillPrint(row, "EWayBill Report")
-                            }
-                            disabled={row.saleewaybillno === ""}
-                            buttonColor={
-                              row.EWayBill_Print === "Y" ? "green" : "#3b82f6"
+                              row.SaleBill_Print === "Y" && row.EWayBill_Print === "Y"
+                                ? "green"
+                                : "#3b82f6"
                             }
                           />
                         </TableCell>

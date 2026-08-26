@@ -1,6 +1,22 @@
+# Python virtual environments
+venv/
+*/venv/
+**/venv/
+env/
+.venv/
+
+# Environment/secret files
+.env
+*.env
+**/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
 # Exclude node_modules directory
 node_modules/
-env
 
 # Exclude logs and other generated files
 *.log
@@ -11,3 +27,6 @@ env
 .vscode/
 .idea/
 *.bak
+
+# Credential/service-account JSON (be explicit for this project)
+Server/venv/app/Common/WhatsApp/*.json

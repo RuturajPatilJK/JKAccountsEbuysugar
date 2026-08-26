@@ -115,8 +115,8 @@ const UserCreationCompoenent = () => {
                     Cupboard_Code: "",
                     File_No: "",
                 });
-                selectedUserId = ""
-                cupboardCode = ""
+                setSelectedUserId("");
+                setCupboardCode("");
                 setCurrentIndex(response.data.length - 1);
 
             })
@@ -206,7 +206,31 @@ const UserCreationCompoenent = () => {
                         icon: "success",
                         confirmButtonText: "OK",
                     });
-                    window.location.reload();
+
+                    // Show the record the server actually saved, instead of
+                    // reloading the page - a reload restores whatever
+                    // editRecordData was last pushed into browser history for
+                    // this URL (e.g. an old record from a previous
+                    // double-click), which is why an old Doc_No used to
+                    // reappear here after saving a brand new one.
+                    const savedRecord = response.data.userCreation;
+                    employeeCodeNew = savedRecord.Doc_No;
+                    maxFileNoNew = savedRecord.File_No;
+                    SlectedUserIdNew = savedRecord.Cupboard_Code;
+                    SelectUserName = savedRecord.CupBoardCode_Name;
+                    setSelectedUserId(savedRecord.Cupboard_Code);
+                    setCupboardCode(savedRecord.Cupboard_Code);
+                    setEmployeeDetails({
+                        Doc_No: savedRecord.Doc_No,
+                        Doc_Date: savedRecord.Doc_Date,
+                        File_Name: savedRecord.File_Name,
+                        File_Discription: savedRecord.File_Discription,
+                        Cupboard_Code: savedRecord.Cupboard_Code,
+                        File_No: savedRecord.File_No,
+                        Created_by: savedRecord.Created_by,
+                        Modified_by: savedRecord.Modified_by,
+                    });
+
                     setIsEditMode(false);
                     setAddOneButtonEnabled(true);
                     setEditButtonEnabled(true);
@@ -217,9 +241,6 @@ const UserCreationCompoenent = () => {
                     setCancelButtonClicked(true);
                     setIsEditing(false);
                     setDisabledFeilds(true);
-                    setTimeout(() => {
-                        window.location.reload()
-                    }, 1000);
                 })
                 .catch((error) => {
                     console.error("Error saving data:", error);
@@ -293,10 +314,35 @@ const UserCreationCompoenent = () => {
             .get(`${apiURL}/getlastfilebyid`)
             .then((response) => {
                 const lastRecord = response.data.lastUserCreation;
-                employeeCodeNew = response.data.lastUserCreation.employeeCode;
+
+                if (!lastRecord) {
+                    // No records left (e.g. the only record was just deleted) -
+                    // reset to a blank "new record" state instead of leaving
+                    // the previous (now-deleted) record on screen.
+                    employeeCodeNew = "";
+                    maxFileNoNew = "";
+                    SlectedUserIdNew = "";
+                    SelectUserName = "";
+                    setSelectedUserId("");
+                    setCupboardCode("");
+                    setEmployeeDetails({
+                        Doc_No: 1,
+                        Doc_Date: "",
+                        File_Name: "",
+                        File_Discription: "",
+                        Cupboard_Code: "",
+                        File_No: "",
+                        Created_by: "",
+                        Modified_by: "",
+                    });
+                    return;
+                }
+
+                employeeCodeNew = lastRecord.Doc_No;
                 maxFileNoNew = lastRecord.File_No;
                 SlectedUserIdNew = lastRecord.Cupboard_Code
                 SelectUserName = lastRecord.CupBoardCode_Name
+                setSelectedUserId(lastRecord.Cupboard_Code);
                 setCupboardCode(lastRecord.Cupboard_Code);
                 setEmployeeDetails({
                     Doc_No: lastRecord.Doc_No,
@@ -304,6 +350,7 @@ const UserCreationCompoenent = () => {
                     File_Name: lastRecord.File_Name,
                     File_Discription: lastRecord.File_Discription,
                     Cupboard_Code: lastRecord.Cupboard_Code,
+                    File_No: lastRecord.File_No,
                     Created_by: lastRecord.Created_by,
                     Modified_by: lastRecord.Modified_by,
 

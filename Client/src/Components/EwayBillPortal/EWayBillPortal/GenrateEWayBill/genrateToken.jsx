@@ -53,28 +53,16 @@
 
 import axios from 'axios';
 
-const API_URL = "https://api.whitebooks.in/ewaybillapi/v1.03/authenticate";
-const HEADERS = {
-    ip_address: "",
-    client_id: process.env.REACT_APP_EWAYBILL_CLIENT_ID,
-    client_secret: process.env.REACT_APP_EWAYBILL_CLIENT_SECRET,
-    gstin: process.env.REACT_APP_EWAYBILL_GSTIN,
+const API_URL = `${process.env.REACT_APP_API}/whitebooks-authenticate`;
+
+export const getPublicIp = async () => {
+    return "172.0.0.1";
 };
 
 export const EwayBillTokenGenerator = () => {
     const generateToken = async () => {
         try {
-            const params = {
-                email: process.env.REACT_APP_EWAYBILL_EMAIL,
-                username: process.env.REACT_APP_EWAYBILL_USERNAME,
-                password: process.env.REACT_APP_EWAYBILL_PASSWORD,
-            };
-            const config = {
-                headers: HEADERS,
-                params: params,
-            };
-
-            const response = await axios.get(API_URL, config);
+            const response = await axios.get(API_URL);
 
             if (response.data && response.status === 200) {
                 return response.data;

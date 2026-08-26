@@ -43,18 +43,13 @@ const tableCellStyle = {
 
 const apikey = process.env.REACT_APP_API;
 const socketURL = process.env.REACT_APP_API_URL;
-const DETAILS_API_URL =
-  "https://api.mastergst.com/ewaybillapi/v1.03/ewayapi/getewaybill";
+// mastergst.com is now called server-side (see WhitebooksProxyController.py) -
+// GSP domains reject cross-origin browser calls (CORS preflight fails in
+// production), and calling it directly also leaked client_secret to anyone
+// opening DevTools.
+const DETAILS_API_URL = `${apikey}/mastergst-get-ewaybill`;
 
-const API_URL =
-  "https://api.mastergst.com/ewaybillapi/v1.03/ewayapi/getewaybillsbydate";
-
-const HEADERS = {
-  ip_address: "",
-  client_id: process.env.REACT_APP_EWAYBILL_CLIENT_ID,
-  client_secret: process.env.REACT_APP_EWAYBILL_CLIENT_SECRET,
-  gstin: process.env.REACT_APP_EWAYBILL_GSTIN,
-};
+const API_URL = `${apikey}/mastergst-get-ewaybills-by-date`;
 
 const MissingData = ({ fromDate }) => {
   const [data, setData] = useState([]);
@@ -164,11 +159,7 @@ const MissingData = ({ fromDate }) => {
   const fetchEwayBillDetails = async (ewbNo, token) => {
     try {
       const response = await axios.get(DETAILS_API_URL, {
-        params: { email: process.env.REACT_APP_EWAYBILL_EMAIL, ewbNo },
-        headers: {
-          ...HEADERS,
-          Authorization: `Bearer ${token}`,
-        },
+        params: { ewbNo, token },
       });
       return response.data.data || {};
     } catch (error) {

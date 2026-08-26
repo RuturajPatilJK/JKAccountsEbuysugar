@@ -517,6 +517,7 @@ const Navbar = () => {
       items: [
         { to: "/tender-purchaseutility", icon: ClipboardDocumentCheckIcon, text: "Tender Purchase" },
         { to: "/sauda-book-utility-page", icon: BookOpenIcon, text: "Sauda Book Utility" },
+        { to: "/sauda-shifting-utility", icon: ArrowsRightLeftIcon, text: "Sauda Shifting" },
         { to: "/delivery-order-utility", icon: TruckIcon, text: "Delivery Order" },
         { to: "/delivery-order-summary-utility", icon: TruckIcon, text: "Delivery Order -  Mobile" },
         { to: "/CarporateSale-utility", icon: TruckIcon, text: "  Carporate Sale" },

@@ -234,6 +234,20 @@ const CupBoardmasterComponent = () => {
       .get(`${apiURL}/getlastrecordcupboardmaster`)
       .then((response) => {
         const lastRecord = response.data.lastCupBoardMaster;
+
+        if (!lastRecord) {
+          // No cupboards left (e.g. the only one was just deleted) - reset
+          // to a blank "new record" state instead of leaving the previous
+          // (now-deleted) record on screen.
+          setEmployeeDetails({
+            Cupboard_Code: 1,
+            Cupboard_Name: "",
+            Created_by: "",
+            Modified_by: "",
+          });
+          return;
+        }
+
         setEmployeeDetails({
           Cupboard_Code: lastRecord.Cupboard_Code,
           Cupboard_Name: lastRecord.Cupboard_Name,

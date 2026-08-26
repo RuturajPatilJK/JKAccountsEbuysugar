@@ -203,10 +203,10 @@ const CustomerLimit = () => {
     setSelectedAcName(name);
     setSelectedAccoid(accoid);
 
-    if (ebuyLimit && parseFloat(ebuyLimit) !== 0) {
+    if (ebuyLimit !== null && ebuyLimit !== undefined && ebuyLimit !== "") {
       setDailyBuyLimit(String(ebuyLimit));
     }
-    if (ebuySlLimit && parseFloat(ebuySlLimit) !== 0) {
+    if (ebuySlLimit !== null && ebuySlLimit !== undefined && ebuySlLimit !== "") {
       setDailySellLimit(String(ebuySlLimit));
     }
   };

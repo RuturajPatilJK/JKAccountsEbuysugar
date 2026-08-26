@@ -21,7 +21,7 @@ import SearchBar from "../../../Common/UtilityCommon/SearchBar";
 
 function UserCreationUtility() {
   const apiURL = process.env.REACT_APP_API_URL_FILE_SYSTEM;
-  const API_URL = process.env.REACT_APP_API_URL;
+  const API_URL = process.env.REACT_APP_API_URL_FILE_SYSTEM;
 
   const [fetchedData, setFetchedData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -158,9 +158,9 @@ function UserCreationUtility() {
                 <TableCell><strong>Doc Date</strong></TableCell>
                 <TableCell><strong>File Name</strong></TableCell>
                 <TableCell><strong>File Description</strong></TableCell>
-                <TableCell style={{ whiteSpace: "nowrap" }}><strong>Cupboard Code</strong></TableCell>
+                <TableCell style={{ whiteSpace: "nowrap" }}><strong>Cupboard / Drawer Code </strong></TableCell>
                 <TableCell style={{ whiteSpace: "nowrap" }}><strong>File No</strong></TableCell>
-                <TableCell style={{ whiteSpace: "nowrap" }}><strong>Cupboard Name</strong></TableCell>
+                <TableCell style={{ whiteSpace: "nowrap" }}><strong>Cupboard / Drawer Name</strong></TableCell>
                 {/* <TableCell style={{ whiteSpace: "nowrap" }}><strong>Remark</strong></TableCell> */}
               </TableRow>
             </TableHead>

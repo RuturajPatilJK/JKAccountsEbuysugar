@@ -1512,6 +1512,7 @@ import { invoiceDataEwayBills } from './InvoiceBody';
 import { useNavigate } from "react-router-dom";
 import EwayBillTokenGenerator from "../EWayBillPortal/GenrateEWayBill/genrateToken";
 import SaleBillReport from '../Reports/SaleBillReport/SaleBillReport'
+import MergedBillReport from '../Reports/MergedBillReport'
 
 
 const doubleLineStyle = {
@@ -1546,19 +1547,12 @@ const phoneNo = process.env.REACT_APP_PHONENO
   const Company_Code = sessionStorage.getItem('Company_Code');
   const Year_Code = sessionStorage.getItem('Year_Code');
 
-  //   const Company_Code = 1
-  // const Year_Code = 4
 
-  // const DETAILS_API_URL = "https://api.mastergst.com/ewaybillapi/v1.03/ewayapi/getewaybill";
-
-  const DETAILS_API_URL = "https://api.whitebooks.in/ewaybillapi/v1.03/ewayapi/getewaybill";
-
-  const HEADERS = {
-    ip_address: "",
-    client_id: process.env.REACT_APP_EWAYBILL_CLIENT_ID,
-    client_secret: process.env.REACT_APP_EWAYBILL_CLIENT_SECRET,
-    gstin: process.env.REACT_APP_EWAYBILL_GSTIN,
-  };
+  // Whitebooks is now called server-side (see WhitebooksProxyController.py) -
+  // api.whitebooks.in rejects cross-origin browser calls (CORS preflight
+  // fails in production), and calling it directly also leaked client_secret
+  // to anyone opening DevTools.
+  const DETAILS_API_URL = `${API_URL}/whitebooks-get-ewaybill`;
 
   const [formData, setFormData] = useState(initialFormData);
   const resizableRef = useRef(null);
@@ -1591,14 +1585,12 @@ const phoneNo = process.env.REACT_APP_PHONENO
   //Fetch Eway bill details
   const fetchEwayBillDetails = async (ewbNo) => {
     const { generateToken } = EwayBillTokenGenerator();
-    const tokenResponse = generateToken();
+
+    const tokenResponse = await generateToken();
+    console.log("[fetchEwayBillDetails] auth response:", tokenResponse);
     try {
       const response = await axios.get(DETAILS_API_URL, {
-        params: { email: process.env.REACT_APP_EWAYBILL_EMAIL, ewbNo },
-        headers: {
-          ...HEADERS,
-          Authorization: `Bearer ${tokenResponse.token}`,
-        },
+        params: { ewbNo, token: tokenResponse?.token },
       });
 
       return response.data.data.actualDist;
@@ -2953,9 +2945,9 @@ const phoneNo = process.env.REACT_APP_PHONENO
           </Grid>
         </FormGroup>
         <Dialog open={showReport} onClose={handleCloseReport} fullWidth maxWidth="lg">
-          <DialogTitle>Sale Bill Report</DialogTitle>
+          <DialogTitle>Sale Bill & EWay Bill Report</DialogTitle>
           <DialogContent>
-            {showReport && <SaleBillReport saleId={saleId} ewayBillNo={ewayBillNo} />}
+            {showReport && <MergedBillReport saleId={saleId} ewayBillNo={ewayBillNo} onClose={handleCloseReport} />}
           </DialogContent>
         </Dialog>
       </Paper>

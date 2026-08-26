@@ -120,7 +120,7 @@ const Footer = () => {
         </div>
         <div className="footer-right" ref={footerRightRef}>
           <span className="footer-text">
-            Copyright © {new Date().getFullYear()} : <span className="highlight-text">JK Enterprise</span>
+            Copyright © {new Date().getFullYear()} : <span className="highlight-text">JK India eAgriTech Limited</span>
           </span>
         </div>
         <div className="footer-social-row">

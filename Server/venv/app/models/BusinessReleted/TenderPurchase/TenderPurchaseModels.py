@@ -1,7 +1,8 @@
 # project_folder/app/models/tender.py
-from app import db 
+from app import db
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.mssql import NVARCHAR
 from datetime import datetime, timedelta, timezone
 
 def get_indian_time():
@@ -68,6 +69,12 @@ class TenderHead(db.Model):
     Unit = db.Column(db.String(3))
     gstid = db.Column(db.Integer)
 
+    # Sauda Shifting remarks/references (see SaudaShiftingController.py) -
+    # a single JSON blob: {"Shift": [...], "Received": [...]}, one entry per
+    # shift this tender was the source/destination of. Nullable, additive -
+    # no other existing column touched.
+    Remark = db.Column(NVARCHAR(None), nullable=True)
+
     details = db.relationship('TenderDetails', backref='head', lazy=True)
  
 class TenderDetails(db.Model):
@@ -119,6 +126,9 @@ class TenderDetails(db.Model):
     EbuySugarSaudaExpire_Time = db.Column(db.Time)
     PersonId = db.Column(db.Integer)
     from_software = db.Column(db.String(2))
+    Buy_Us = db.Column(db.String(1), nullable=True, default='N')
+    New_Tender_No = db.Column(db.Integer, nullable=True)
+    Sauda_Lifting_Date = db.Column(db.Date, nullable=True)
 
 
 class TenderGradeDetails(db.Model):

@@ -69,6 +69,12 @@ const UserCreationCompoenent = () => {
             Doc_Date: getCurrentDate(),
         }));
 
+        employeeCodeNew = "";
+        maxFileNoNew = "";
+        SlectedUserIdNew = "";
+        SelectUserName = "";
+        newShiftingCupboardCode = "";
+        newShiftingCupboardName = "";
     }, []);
 
     const handleInputChange = (e) => {
@@ -100,14 +106,6 @@ const UserCreationCompoenent = () => {
                 console.error("Error fetching max File_No:", error);
             });
     };
-
-    useEffect(() => {
-        if (newShiftingCupboardCode) {
-            fetchMaxFileNo();
-        }
-    }, [newShiftingCupboardCode]);
-
-
 
     const handleSaveOrUpdate = async () => {
         try {
@@ -169,9 +167,8 @@ const UserCreationCompoenent = () => {
         newShiftingCupboardCode = code;
         newShiftingCupboardName = name;
 
-        if (isOldFileLoaded) {
-            setIsNewCupboardSelected(true);
-        }
+    
+        setIsNewCupboardSelected(true);
         fetchMaxFileNo(code);
     };
 

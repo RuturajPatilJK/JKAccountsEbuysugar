@@ -315,9 +315,8 @@ const DeliveryOrderOurDoReport = ({ doc_no, disabledFeild }) => {
       pdf.setFont("Signika-Medium");
       pdf.setTextColor(0, 0, 0);
 
-      // Combine millshortname and itemname safely
-      const itemTitle = `${allData.millshortname ?? ""}, ${allData.itemname ?? "Sugar"}`;
-      pdf.text(itemTitle.trim(), 12, y + 9);
+      const itemTitle = allData.itemname ?? "Sugar";
+      pdf.text(itemTitle, 12, y + 9);
 
       pdf.setFont("Signika-Regular");
       pdf.text(String(allData.HSN ?? ""), 60, y + 9);

@@ -72,6 +72,7 @@ import TrialBalance from './Reports/TrialBalance/TrialBalance.jsx'
 import TenderReports from "./Reports/PendingReports/TenderReports.jsx";
 //SaudaBookUtility
 import SaudaBookUtility from './BusinessRelated/SaudaBookUtility/SaudaBookUtility.jsx';
+import SaudaShifting from './BusinessRelated/SaudaShifting/SaudaShifting.jsx';
 import UTRDetailReport from "./Reports/PendingReports/UTRDetailReport.jsx";
 import SaudaBookUtilityPage from './BusinessRelated/SaudaBookUtility/SaudaBookUtilityPage.jsx';
 import NormalSaudaSummary from "./../Components/Reports/PendingReports/NormalSaudaSummary.jsx"
@@ -648,6 +649,10 @@ const routes = [
   {
     path: '/sauda-book-utility-page',
     element: SaudaBookUtilityPage
+  },
+  {
+    path: '/sauda-shifting-utility',
+    element: SaudaShifting
   },
   {
     path: '/utr_detail-report',

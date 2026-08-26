@@ -19,6 +19,7 @@ from app.utils.CommonSugarPurchaseStatusCheck import get_match_status
 from app.utils.CommonCompanyLogs.CompanyLogsUtils import create_company_log_entry
 from datetime import time
 from zoneinfo import ZoneInfo
+from app.Controllers.BusinessRelated.SaudaShifting.SaudaShiftingController import _serialize_remarks
 
 API_URL = os.getenv('API_URL')
 API_URL_SERVER = os.getenv('API_URL_SERVER')
@@ -26,6 +27,32 @@ SERVER_NAME = "JK Live Tender Server"
 
 app.config['SECRET_KEY'] = 'ABCDEFGHIJKLMNOPQRST'
 CORS(app, cors_allowed_origins="*")
+
+EBUY_SUGAR_AC_CODE = os.getenv('EBUY_SUGAR_AC_CODE')
+
+EBUY_AWAY_QUERY = '''
+SELECT ISNULL(SUM(Buyer_Quantal), 0) AS away_qty
+FROM dbo.nt_1_tenderdetails
+WHERE ebuyid = :ebuyid AND tenderid <> :tenderid
+'''
+
+
+def _apply_ebuy_away_adjustment(rows):
+    if not EBUY_SUGAR_AC_CODE:
+        return rows
+    for row in rows:
+        if row.get('Buyer') is None or str(row.get('Buyer')) != str(EBUY_SUGAR_AC_CODE):
+            continue
+        away_row = db.session.execute(
+            text(EBUY_AWAY_QUERY),
+            {"ebuyid": row.get('tenderdetailid'), "tenderid": row.get('tenderid')}
+        ).fetchone()
+        away_qty = float(away_row.away_qty or 0) if away_row else 0.0
+        if away_qty:
+            row['Buyer_Quantal'] = float(row.get('Buyer_Quantal') or 0) - away_qty
+            if 'balance' in row and row.get('balance') is not None:
+                row['balance'] = float(row.get('balance') or 0) - away_qty
+    return rows
 
 # Global SQL Query
 TASK_DETAILS_QUERY = '''
@@ -42,7 +69,8 @@ TASK_DETAILS_QUERY = '''
                   dbo.qrytenderdetail.tcs_rate, dbo.qrytenderdetail.gst_rate, dbo.qrytenderdetail.tcs_amt, dbo.qrytenderdetail.gst_amt, dbo.qrytenderdetail.ShipTo, dbo.qrytenderdetail.CashDiff, dbo.qrytenderdetail.shiptoid, 
                   dbo.qrytenderdetail.ShipToname, dbo.qrytenderdetail.buyershortname, dbo.qrytenderdetail.buyerpartymobno, dbo.qrytenderdetail.ebuyid, ISNULL(SUM(dbo.nt_1_deliveryorder.quantal), 0) AS despatched,
                   ISNULL(dbo.qrytenderdetail.Buyer_Quantal - ISNULL(SUM(dbo.nt_1_deliveryorder.quantal), 0), 0) AS balance, dbo.qrytenderdetail.gradeid, dbo.qrytenderdetail.gradeCode, dbo.nt_1_tenderGradeDetails.gradeRate,
-                  gradeDetails.System_Name_E AS detailGradeName, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate as detailPurchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate
+                  gradeDetails.System_Name_E AS detailGradeName, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate as detailPurchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate,
+                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No
 FROM     dbo.nt_1_tenderGradeDetails RIGHT OUTER JOIN
                   dbo.qrytenderdetail ON dbo.nt_1_tenderGradeDetails.tenderid = dbo.qrytenderdetail.tenderid AND dbo.nt_1_tenderGradeDetails.gradeid = dbo.qrytenderdetail.gradeid LEFT OUTER JOIN
                   dbo.nt_1_systemmaster AS gradeDetails ON dbo.nt_1_tenderGradeDetails.gradeid = gradeDetails.systemid LEFT OUTER JOIN
@@ -68,7 +96,8 @@ GROUP BY Mill.Ac_Name_E, dbo.nt_1_tender.Mill_Code, dbo.nt_1_tender.mc, dbo.nt_1
                   dbo.qrytenderdetail.buyerpartycitypincode, dbo.qrytenderdetail.buyerpartycitystate, dbo.qrytenderdetail.buyerpartycitygststatecode, dbo.qrytenderdetail.sub_broker, dbo.qrytenderdetail.sbr, dbo.qrytenderdetail.subbrokername, 
                   dbo.qrytenderdetail.subbrokercityname, dbo.qrytenderdetail.tcs_rate, dbo.qrytenderdetail.gst_rate, dbo.qrytenderdetail.tcs_amt, dbo.qrytenderdetail.gst_amt, dbo.qrytenderdetail.ShipTo, dbo.qrytenderdetail.CashDiff, 
                   dbo.qrytenderdetail.shiptoid, dbo.qrytenderdetail.ShipToname, dbo.qrytenderdetail.buyershortname, dbo.qrytenderdetail.buyerpartymobno, dbo.qrytenderdetail.ebuyid, dbo.qrytenderdetail.gradeid, dbo.qrytenderdetail.gradeCode,
-                  dbo.nt_1_tenderGradeDetails.gradeRate, dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, gradeDetails.System_Name_E, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate
+                  dbo.nt_1_tenderGradeDetails.gradeRate, dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, gradeDetails.System_Name_E, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate,
+                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No
 ORDER BY dbo.qrytenderdetail.ID
 '''
 
@@ -167,6 +196,7 @@ def get_task_by_task_no():
         additional_data_rows = [row._asdict() for row in additional_data.fetchall()]
 
         formatted_additional_data_rows = [format_dates_details(row) for row in additional_data_rows]
+        formatted_additional_data_rows = _apply_ebuy_away_adjustment(formatted_additional_data_rows)
 
         grade_rows = TenderGradeDetails.query.filter_by(
             tenderid=newtenderid
@@ -178,18 +208,23 @@ def get_task_by_task_no():
               "gradeCode": gr.gradeCode,
               "gradeid":   gr.gradeid,
               "gradeRate": float(gr.gradeRate),
-              'Purchase_Rate': float(gr.Purchase_Rate) 
+              'Purchase_Rate': float(gr.Purchase_Rate)
             }
             for gr in grade_rows
         ]
-   
+
         response = {
             "last_tender_head_data": {
                 **{column.name: getattr(task_head, column.name) for column in task_head.__table__.columns},
-                  **format_dates(task_head), 
+                  **format_dates(task_head),
             },
             "last_tender_details_data": formatted_additional_data_rows,
-            "last_tender_grade_data": tender_grade_data
+            "last_tender_grade_data": tender_grade_data,
+            # Sauda Shifting remarks/references - see SaudaShiftingController.py.
+            # Kept OUT of last_tender_head_data on purpose: that dict gets
+            # spread into formData, which is sent back wholesale on save -
+            # these aren't real nt_1_tender columns for the ORM to consume.
+            **_serialize_remarks(task_head),
         }
         return jsonify(response), 200
     except Exception as e:
@@ -267,7 +302,12 @@ def insert_tender_head_detail():
             added_details = [tender_detail_schema.dump(detail) for detail in createdDetails]
 
            # Sockert Emit
+            # tenderid/Tender_No are duplicated at the top level (in addition to
+            # inside `head`) so listeners can match against the currently-open
+            # record without having to reach into the nested dump.
             socketio.emit('tender_added', json.loads(json.dumps({
+                'tenderid': head_data.get('tenderid'),
+                'Tender_No': head_data.get('Tender_No'),
                 'head': head_data,
                 'addedDetails': added_details,
                 'updatedDetails': updatedDetails,
@@ -619,7 +659,7 @@ def update_tender_purchase():
                 )
 
             db.session.commit()
-            socketio.emit("tender_updated", {"tenderid": tenderid})
+            socketio.emit("tender_updated", {"tenderid": tenderid, "Tender_No": existing_head.Tender_No})
 
             # cash_diff = headData.get('CashDiff', 0)
             # if cash_diff == 0:  
@@ -886,7 +926,8 @@ def get_first_record_navigation():
                 **format_dates(first_task), 
             },
             "first_tender_details_data": formatted_additional_data_rows,
-            "first_tender_grade_data": tender_grade_data
+            "first_tender_grade_data": tender_grade_data,
+            **_serialize_remarks(first_task),
         }
 
         return jsonify(response), 200
@@ -938,9 +979,10 @@ def get_last_record_navigation():
                 **format_dates(last_task),
                 
             },
-            "last_tender_details_data": 
-                formatted_additional_data_rows,  
-                "last_tender_grade_data" : tender_grade_data
+            "last_tender_details_data":
+                formatted_additional_data_rows,
+                "last_tender_grade_data" : tender_grade_data,
+            **_serialize_remarks(last_task),
         }
 
         return jsonify(response), 200
@@ -995,7 +1037,8 @@ def get_previous_task_navigation():
                 **format_dates(previous_task), 
             },
             "previous_tender_details_data":formatted_additional_data_rows,
-            "previous_tender_grade_data":tender_grade_data
+            "previous_tender_grade_data":tender_grade_data,
+            **_serialize_remarks(previous_task),
         }
 
         return jsonify(response), 200
@@ -1050,7 +1093,8 @@ def get_next_task_navigation():
                 **format_dates(next_task)
             },
             "next_tender_details_data": formatted_additional_data_rows,
-            "next_tender_grade_data":tender_grade_data
+            "next_tender_grade_data":tender_grade_data,
+            **_serialize_remarks(next_task),
         }
         return jsonify(response), 200
     except Exception as e:
@@ -1121,7 +1165,7 @@ def add_detail_to_tender():
                 print(f"Error updating quantity: {e}")
 
         db.session.commit()
-        socketio.emit("tender_updated", {"tenderid": tenderid})
+        socketio.emit("tender_updated", {"tenderid": tenderid, "Tender_No": tender_no})
 
         return jsonify({
             "message": "Detail entry added successfully",
@@ -1182,6 +1226,7 @@ def Stock_Entry_tender_purchase():
                 return jsonify({"error": "Error processing item", "message": str(e)}), 500
 
         db.session.commit()
+        socketio.emit("tender_updated", {"tenderid": tenderid, "Tender_No": tender_no})
         return jsonify({
             "Message": "Data Inserted Successfully...",
             "addedDetails": tender_detail_schemas.dump(createdDetails),
@@ -1189,7 +1234,7 @@ def Stock_Entry_tender_purchase():
             "deletedDetails": deletedDetailIds
         })
 
-    except Exception as e:  
+    except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
 
@@ -1655,23 +1700,29 @@ def get_sauda_book_utility():
 
         # ------------------ NEW SELF QUERY ------------------
         sql_query = text('''
-           SELECT        TOP (100) PERCENT dbo.nt_1_tender.Tender_No, dbo.nt_1_tender.Company_Code, dbo.nt_1_tender.Quantal, ISNULL(SUM(dbo.qryebuysalesaudadetail.saudaqntl), 0) AS sqntl, 
+
+SELECT   dbo.nt_1_tender.Tender_No, dbo.nt_1_tender.Company_Code, dbo.nt_1_tender.Quantal, ISNULL(SUM(dbo.qryebuysalesaudadetail.saudaqntl), 0) AS sqntl, 
                          ISNULL(SUM(dbo.qryebuysalesaudadetail.soldebuy), 0) AS esold, dbo.nt_1_tender.Quantal + ISNULL(SUM(dbo.qryebuysalesaudadetail.soldebuy), 0) - ISNULL(SUM(dbo.qryebuysalesaudadetail.saudaqntl), 0) AS selfqty, 
                          dbo.nt_1_accountmaster.Ac_Name_E AS millname, dbo.nt_1_accountmaster.Short_Name AS millshortname, dbo.nt_1_tender.Grade, dbo.nt_1_tender.Mill_Rate, dbo.nt_1_tender.Lifting_Date, 
                          nt_1_accountmaster_1.Ac_Name_E AS doname, nt_1_accountmaster_1.Short_Name AS doshortname, dbo.nt_1_tender.tenderid, dbo.nt_1_tenderGradeDetails.Purchase_Rate, dbo.nt_1_tenderGradeDetails.gradeRate, 
-                         dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, dbo.nt_1_tender.mc, dbo.nt_1_tender.Mill_Code, dbo.nt_1_tender.Tender_Date, dbo.nt_1_systemmaster.System_Name_E AS gradename
+                         dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, dbo.nt_1_tender.mc, dbo.nt_1_tender.Mill_Code, dbo.nt_1_tender.Tender_Date, dbo.nt_1_systemmaster.System_Name_E AS gradename, 
+                         dbo.nt_1_tender.itemcode, itemname.System_Name_E AS itemname, itemname.minRate, itemname.maxRate
 FROM            dbo.nt_1_tender INNER JOIN
                          dbo.nt_1_accountmaster ON dbo.nt_1_tender.mc = dbo.nt_1_accountmaster.accoid INNER JOIN
                          dbo.nt_1_accountmaster AS nt_1_accountmaster_1 ON dbo.nt_1_tender.pt = nt_1_accountmaster_1.accoid INNER JOIN
                          dbo.nt_1_tenderGradeDetails ON dbo.nt_1_tender.tenderid = dbo.nt_1_tenderGradeDetails.tenderid INNER JOIN
-                         dbo.nt_1_systemmaster ON dbo.nt_1_tenderGradeDetails.gradeid = dbo.nt_1_systemmaster.systemid LEFT OUTER JOIN
+                         dbo.nt_1_systemmaster ON dbo.nt_1_tenderGradeDetails.gradeid = dbo.nt_1_systemmaster.systemid INNER JOIN
+                         dbo.nt_1_systemmaster AS itemname ON dbo.nt_1_tender.ic = itemname.systemid LEFT OUTER JOIN
                          dbo.qryebuysalesaudadetail ON dbo.nt_1_tender.tenderid = dbo.qryebuysalesaudadetail.tenderid
- WHERE dbo.nt_1_tender.Company_Code = :company_code
+WHERE      dbo.nt_1_tender.Company_Code = :company_code
 GROUP BY dbo.nt_1_tender.Tender_No, dbo.nt_1_tender.Company_Code, dbo.nt_1_tender.Quantal, dbo.nt_1_accountmaster.Ac_Name_E, dbo.nt_1_accountmaster.Short_Name, dbo.nt_1_tender.Grade, dbo.nt_1_tender.Mill_Rate, 
                          dbo.nt_1_tender.Lifting_Date, nt_1_accountmaster_1.Ac_Name_E, nt_1_accountmaster_1.Short_Name, dbo.nt_1_tender.tenderid, dbo.nt_1_tenderGradeDetails.Purchase_Rate, dbo.nt_1_tenderGradeDetails.gradeRate, 
-                         dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, dbo.nt_1_tender.mc, dbo.nt_1_tender.Mill_Code, dbo.nt_1_tender.Tender_Date, dbo.nt_1_systemmaster.System_Name_E
+                         dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, dbo.nt_1_tender.mc, dbo.nt_1_tender.Mill_Code, dbo.nt_1_tender.Tender_Date, dbo.nt_1_systemmaster.System_Name_E, 
+                         dbo.nt_1_tender.itemcode, itemname.System_Name_E, itemname.minRate, itemname.maxRate
 HAVING        (dbo.nt_1_tender.Quantal + ISNULL(SUM(dbo.qryebuysalesaudadetail.soldebuy), 0) - ISNULL(SUM(dbo.qryebuysalesaudadetail.saudaqntl), 0) <> 0)
 ORDER BY dbo.nt_1_tender.Lifting_Date DESC
+
+
         ''')
 
         with db.engine.connect() as connection:
@@ -1710,7 +1761,11 @@ ORDER BY dbo.nt_1_tender.Lifting_Date DESC
                     "doname":       row["doname"],
                     "doshortname":  row["doshortname"],
                     "tenderid":     row["tenderid"],
-                    "Grades":       []
+                    "Grades":       [],
+                    "itemcode":     row["itemcode"],
+                    "itemname":     row["itemname"],
+                    "minRate":      row["minRate"],
+                    "maxRate":      row["maxRate"]
                 }
             tenders_map[tid]["Grades"].append({
                 "gradeid":      row["gradeid"],

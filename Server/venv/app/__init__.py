@@ -82,6 +82,9 @@ from app.Controllers.Transactions.OtherPurchase.OtherPurchaseController import *
 from app.Controllers.BusinessRelated.DeliveryOrder.DeliveryOrderController import *
 from app.Controllers.Masters.OtherMasters.SysytemMasterController import *
 from app.Controllers.BusinessRelated.TenderPurchase.TenderPurchaseController import *
+
+#Sauda Shifting (drag-and-drop move of a sauda entry between tenders)
+from app.Controllers.BusinessRelated.SaudaShifting.SaudaShiftingController import *
 from app.Controllers.Transactions.DebitCreditNote.DebitCreditNoteController import *
 from app.Reports.GLedger.GLedgerController import *
 from app.Controllers.Inword.PurchaseBill.PurchaseBillController import *
@@ -162,6 +165,9 @@ from app.Common.EWayBillNEInvoiceGen.EWayBillNEInvoiceGen import *
 
 #EwayBillGeneration
 from app.Common.EWayBillNEInvoiceGen.EwaybillGen import *
+
+#Whitebooks/Mastergst GSP proxy (server-side, avoids browser CORS + credential leak)
+from app.Common.EWayBillNEInvoiceGen.WhitebooksProxyController import *
 
 #WhatsApp
 from app.Common.WhatsApp.WhatsAppController import *
@@ -298,6 +304,13 @@ from app.Controllers.GoogleAnalytics.GoogleAnalyticsController import *
 
 #Other Sale Bill
 from app.Controllers.Outword.OtherSaleBill.OtherSaleBillController import *
+
+#DSC Digital Signature - Customized Sale Bill Print
+from app.Common.DSCSign.DSCSignController import *
+
+#JK Group File Management System - Cupboard Master + File Information
+from app.Controllers.CupboardMaster.CupboardMasterController import *
+from app.Controllers.FileInformation.FileInformationController import *
 
 
 upload_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')

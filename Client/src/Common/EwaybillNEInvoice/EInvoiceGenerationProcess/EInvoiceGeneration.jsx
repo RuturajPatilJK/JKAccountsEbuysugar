@@ -87,7 +87,7 @@ const EInvoiceGeneration = ({
         ? "CRN"
         : prev.docType,
       Doc_No: `${tran_type}${prev.year}-${prev.Doc_No || doc_no}`,
-      unit: tran_type === "SO" ? "MT" : prev.unit,
+      unit: tran_type === "SO" ? "MTS" : prev.unit,
     }));
   }, [formData.Company_Name_E, formData.Buyer_Name, tran_type, doc_no]);
 

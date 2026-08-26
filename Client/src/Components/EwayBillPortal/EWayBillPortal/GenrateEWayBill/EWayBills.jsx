@@ -755,21 +755,17 @@ const apikey = process.env.REACT_APP_API
 // const DETAILS_API_URL = "https://api.mastergst.com/ewaybillapi/v1.03/ewayapi/getewaybill";
 // const EayBill_By_Other_Party_API = "https://api.mastergst.com/ewaybillapi/v1.03/ewayapi/getewaybillsofotherparty"
 
-const API_URL = "https://api.whitebooks.in/ewaybillapi/v1.03/ewayapi/getewaybillsbydate";
+
+const API_URL = `${apikey}/whitebooks-get-ewaybills-by-date`;
 const API_URL_GET = `${apikey}/get-eway-bills`;
-const DETAILS_API_URL = "https://api.whitebooks.in/ewaybillapi/v1.03/ewayapi/getewaybill";
-const EayBill_By_Other_Party_API = "https://api.whitebooks.in/ewaybillapi/v1.03/ewayapi/getewaybillsofotherparty"
+const DETAILS_API_URL = `${apikey}/whitebooks-get-ewaybill`;
+const EayBill_By_Other_Party_API = `${apikey}/whitebooks-get-ewaybills-of-other-party`;
 
 
 //const socketURL = 'wss://accounts-enterprises-api.ebuysugar.com';
 const socketURL = process.env.REACT_APP_API_URL;
 
-const HEADERS = {
-    ip_address: "127.0.0.1",
-    client_id: process.env.REACT_APP_EWAYBILL_CLIENT_ID,
-    client_secret: process.env.REACT_APP_EWAYBILL_CLIENT_SECRET,
-    gstin: process.env.REACT_APP_EWAYBILL_GSTIN,
-};
+const HEADERS = {};
 
 const tableCellStyleHeader = {
     fontSize: '16px',
@@ -851,6 +847,25 @@ const EWayBills = ({ fromDate }) => {
         return `${year}-${month}-${day}`;
     };
 
+    // ewayBillDate comes from the GSP API as "DD/MM/YYYY hh:mm:ss AM/PM"
+    // (12-hour). ewayBillDate is now a DATETIME column, so this keeps the
+    // time instead of dropping it like formatteddatesForInsert does.
+    const formatDateTimeForInsert = (dateTimeStr) => {
+        if (!dateTimeStr) return null;
+        const [datePart, timePart, meridiem] = dateTimeStr.split(' ');
+        const [day, month, year] = datePart.split('/');
+        let [hours, minutes, seconds] = (timePart || '00:00:00').split(':').map(Number);
+
+        if (meridiem) {
+            const upperMeridiem = meridiem.toUpperCase();
+            if (upperMeridiem === 'PM' && hours !== 12) hours += 12;
+            if (upperMeridiem === 'AM' && hours === 12) hours = 0;
+        }
+
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:${pad(seconds || 0)}`;
+    };
+
     // GET All eway bill data from the database.
     const fetchAllEwayBillData = async () => {
         try {
@@ -894,11 +909,7 @@ const EWayBills = ({ fromDate }) => {
     const fetchEwayBillDetails = async (ewbNo, token) => {
         try {
             const response = await axios.get(DETAILS_API_URL, {
-                params: { email: process.env.REACT_APP_EWAYBILL_EMAIL, ewbNo },
-                headers: {
-                    ...HEADERS,
-                    // Authorization: `Bearer ${token}`,
-                },
+                params: { ewbNo },
             });
             return response.data.data || {};
         } catch (error) {
@@ -938,7 +949,7 @@ const EWayBills = ({ fromDate }) => {
                 return {
                     supplyType: bill.supplyType,
                     ewbNo: bill.ewbNo,
-                    ewayBillDate: formatteddatesForInsert(bill.ewayBillDate),
+                    ewayBillDate: formatDateTimeForInsert(bill.ewayBillDate),
                     docNo: bill.docNo,
                     docDate: formatteddatesForInsert(bill.docDate),
                     fromPlace: bill.fromPlace,
@@ -1086,11 +1097,7 @@ const EWayBills = ({ fromDate }) => {
 
                 // First API call to fetch E-Way Bills
                 const response = await axios.get(EayBill_By_Other_Party_API, {
-                    params: { email: process.env.REACT_APP_EWAYBILL_EMAIL, date: formattedDate },
-                    headers: {
-                        ...HEADERS,
-                        // Authorization: `Bearer ${tokenResponse.token}`,
-                    },
+                    params: { date: formattedDate },
                 });
 
                 if (response.status === 200) {
@@ -1236,7 +1243,7 @@ const EWayBills = ({ fromDate }) => {
                 <ImportButton
                     onClick={handleOnSubmit}
                     isLoading={isLoading}
-                    disabled={isToday ? isLoading || !ewayBillInput : false}
+                    // disabled={isToday ? isLoading || !ewayBillInput : false}
                     buttonText={"Import Portal data"}
                     sx={{ marginRight: 2 }}
                 />
@@ -1297,6 +1304,7 @@ const EWayBills = ({ fromDate }) => {
                                     <TableCell style={tableCellStyleHeader}>EWB No</TableCell>
                                     <TableCell style={tableCellStyleHeader}>Supply Type</TableCell>
                                     <TableCell style={tableCellStyleHeader}>EwayBill Date</TableCell>
+                                    <TableCell style={tableCellStyleHeader}>EWB Date Update</TableCell>
                                     <TableCell style={tableCellStyleHeader}>
                                         <TableSortLabel
                                             active={sortConfig.key === 'validUpto'}
@@ -1349,6 +1357,7 @@ const EWayBills = ({ fromDate }) => {
                                                 <TableCell style={tableCellStyle}>{bill.ewbNo}</TableCell>
                                                 <TableCell style={tableCellStyle}>{bill.supplyType}</TableCell>
                                                 <TableCell style={tableCellStyle}>{bill.ewayBillDate}</TableCell>
+                                                <TableCell style={tableCellStyle}>{bill.ewbdateupdate}</TableCell>
                                                 <TableCell style={tableCellStyle}>{bill.validUpto}</TableCell>
                                                 <TableCell style={tableCellStyle}>{bill.docNo}</TableCell>
                                                 <TableCell style={tableCellStyle}>{bill.docDate}</TableCell>

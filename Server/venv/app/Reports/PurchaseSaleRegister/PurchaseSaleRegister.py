@@ -602,12 +602,9 @@ def MonthSaleWise_Register():
             CAST(MONTH(s.doc_date) AS INT) AS mn, 
             s.Company_Code,
             s.Year_Code,
-            d.Quantal       AS qntl,
-            d.item_Amount   AS amt,
-            'SB'            AS tran_type
-          FROM nt_1_sugarsale s
-          JOIN nt_1_sugarsaledetails d 
-            ON s.saleid = d.saleid
+            s.NETQNTL       AS qntl,
+           s.TaxableAmount AS amt, 'SB' AS tran_type
+          FROM            dbo.nt_1_sugarsale AS s
           WHERE s.doc_date BETWEEN :from_date AND :to_date AND s.IsDeleted != 0
             AND s.Company_Code = :CompanyCode
             AND s.Year_Code    = :YearCode

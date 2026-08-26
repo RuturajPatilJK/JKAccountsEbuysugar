@@ -21,6 +21,9 @@ import aiohttp
 from app.models.BusinessReleted.DeliveryOrder.DeliveryOrderSchema import (
     DeliveryOrderHeadSchema, DeliveryOrderDetailSchema,
 )
+from app.Controllers.BusinessRelated.PendingDO.PendingDOController import (
+    sync_pending_delivery_order_for_do,
+)
 from app.Controllers.BusinessRelated.DeliveryOrder.CommonDeliveryOrder import (
     get_max_doc_no,
     async_post,
@@ -646,6 +649,9 @@ async def insert_DeliveryOrder():
         # headData['orderid'] = headData['pendingDoid'] = PendingDeliveryOrder.pendingDoid (PK)
         _pending_doc_id = headData.get('pendingDoid') or headData.get('orderid')
         if _pending_doc_id:
+            # Approving an existing pending request: touch ONLY Approved/doid/
+            # do_no on that specific row - leave its original Quantal etc.
+            # untouched, since it reflects what was actually requested.
             db.session.execute(
                 text("""
                     UPDATE dbo.nt_1_PendingDeliveryOrder
@@ -659,6 +665,33 @@ async def insert_DeliveryOrder():
                     'do_no':      new_doc_no,
                     'pendingDoid': int(_pending_doc_id),
                 }
+            )
+        else:
+            # No existing pending request was being approved - this is a
+            # fresh/manual DO (e.g. a further split of an already-partially-
+            # fulfilled sauda). Give it its own pending-entry mirror instead
+            # of touching any other DO's row that happens to share the same
+            # tenderdetailid.
+            sync_pending_delivery_order_for_do(
+                tenderdetailid=new_head.tenderdetailid,
+                tenderid=new_head.tenderid,
+                doid=new_head.doid,
+                do_no=new_doc_no,
+                company_code=headData['company_code'],
+                mill_code=headData.get('mill_code'),
+                mc=new_head.mc,
+                year_code=headData['Year_Code'],
+                truck_no=new_head.truck_no,
+                driver_no=new_head.driver_no,
+                admin_user_id=headData.get('User_Id'),
+                bill_to_ac_code=new_head.SaleBillTo,
+                bill_to_accoid=new_head.sb,
+                ship_to_ac_code=new_head.voucher_by,
+                ship_to_accoid=new_head.vb,
+                mill_rate=new_head.mill_rate,
+                ebuy_user_id=new_head.CashDiffAc,
+                quantal=new_head.quantal,
+                sale_rate=new_head.sale_rate,
             )
 
         # ── FIX 1: lightweight company parameters — cached, single SELECT ─────
@@ -2444,6 +2477,29 @@ async def update_DeliveryOrder():
                     {'tdid': tenderdetailid_u, 'mid': max_detail_id + 1, 'doid': doid},
                 )
 
+        # ── Mirror this DO into nt_1_PendingDeliveryOrder (Approved='Y') ───────
+        sync_pending_delivery_order_for_do(
+            tenderdetailid=headData.get('tenderdetailid', updated_head.tenderdetailid),
+            tenderid=headData.get('tenderid', updated_head.tenderid),
+            doid=doid,
+            do_no=updateddoc_no,
+            company_code=company_code,
+            mill_code=headData.get('mill_code', updated_head.mill_code),
+            mc=updated_head.mc,
+            year_code=year_code,
+            truck_no=updated_head.truck_no,
+            driver_no=updated_head.driver_no,
+            admin_user_id=user_id,
+            bill_to_ac_code=updated_head.SaleBillTo,
+            bill_to_accoid=updated_head.sb,
+            ship_to_ac_code=updated_head.voucher_by,
+            ship_to_accoid=updated_head.vb,
+            mill_rate=updated_head.mill_rate,
+            ebuy_user_id=updated_head.CashDiffAc,
+            quantal=updated_head.quantal,
+            sale_rate=updated_head.sale_rate,
+        )
+
         # ═════════════════════════════════════════════════════════════════════
         # STEP 8 — Single commit
         # ═════════════════════════════════════════════════════════════════════
@@ -2917,6 +2973,7 @@ def check_multiple_do():
               AND mill_code = :mill_code
               AND company_code = :company_code
               AND Year_Code = :year_code
+            AND purc_no != 0
             ORDER BY doc_no
         """)
         rows = db.session.execute(multi_query, {

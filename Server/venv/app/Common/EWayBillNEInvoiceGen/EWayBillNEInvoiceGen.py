@@ -286,6 +286,33 @@ def updateEInvoiceData():
                         "from_type": "DO"
                     }), 200
                     # From SB screen
+
+        elif tran_type == 'SO':
+            if not ackno:
+                return jsonify({"error": "AckNo is required in the JSON body for sale bills (SO)."}), 400
+
+            if not invoiceno:
+                return jsonify({"error": "Irn (einvoiceno) is required for SO type."}), 400
+
+            update_query_sale = text('''
+                UPDATE NT_1_SugarSale 
+                SET ackno = :ackno, einvoiceno = :invoiceno, QRCode = :QRCode
+                WHERE company_code = :Company_Code
+                AND year_code = :Year_Code
+                AND doc_no = :doc_no
+            ''')
+            db.session.execute(update_query_sale, {
+                'ackno': ackno, 'invoiceno': invoiceno, 'QRCode': QRCode,
+                'doc_no': doc_no, 'Company_Code': Company_Code, 'Year_Code': Year_Code
+            })
+            db.session.commit()
+
+            return jsonify({
+                "message": f"Successfully updated E-Invoice from SO screen for doc_no={doc_no}.",
+                "from_type": "SO"
+            }), 200
+
+
         elif tran_type == 'SB':
             if not ackno:
                 return jsonify({"error": "AckNo is required in the JSON body for sale bills (SB)."}), 400

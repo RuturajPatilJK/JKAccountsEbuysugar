@@ -2,7 +2,7 @@ from app import app, db,socketio
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 from sqlalchemy import text
 from flask import jsonify, request
-from datetime import datetime,time
+from datetime import datetime,time,timedelta
 from flask_socketio import SocketIO
 from app.models.EwayBillonlinePortal.EWayBillReportModels import EWayBillPortal
 # from app.models.EWayBillMissingRecordModels import EWayMissingEWayBills
@@ -98,6 +98,9 @@ def create_eway_bill():
             new_eway_bills = []
             
             for bill_data in data:
+                # ewbdateupdate always mirrors ewayBillDate at insert time -
+                # managed here so the frontend doesn't need to send it.
+                bill_data['ewbdateupdate'] = bill_data.get('ewayBillDate')
                 new_eway_bill = EWayBillPortal(**bill_data)
                 new_eway_bills.append(new_eway_bill)
 
@@ -129,19 +132,30 @@ def get_all_eway_bills():
                 filter_date = datetime.strptime(eway_bill_date_str, '%Y-%m-%d').date()
             except ValueError:
                 return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD."}), 400
-            
-            eway_bills = EWayBillPortal.query.filter_by(ewayBillDate=filter_date).all()
+
+            # ewayBillDate is a DATETIME column (it now stores the actual
+            # generation time, not just midnight), so an exact equality
+            # match against a bare date would miss every row - filter by
+            # the day's full range instead.
+            start_of_day = datetime.combine(filter_date, datetime.min.time())
+            end_of_day = start_of_day + timedelta(days=1)
+            eway_bills = EWayBillPortal.query.filter(
+                EWayBillPortal.ewayBillDate >= start_of_day,
+                EWayBillPortal.ewayBillDate < end_of_day
+            ).all()
         else:
             eway_bills = EWayBillPortal.query.all()
 
         records = []
         for bill in eway_bills:
             bill_dict = bill.__dict__
-            
+
             bill_dict.pop('_sa_instance_state', None)
 
             if 'ewayBillDate' in bill_dict and bill_dict['ewayBillDate']:
-                bill_dict['ewayBillDate'] = bill_dict['ewayBillDate'].strftime('%d/%m/%Y')
+                bill_dict['ewayBillDate'] = bill_dict['ewayBillDate'].strftime('%d/%m/%Y %H:%M:%S')
+            if 'ewbdateupdate' in bill_dict and bill_dict['ewbdateupdate']:
+                bill_dict['ewbdateupdate'] = bill_dict['ewbdateupdate'].strftime('%d/%m/%Y %H:%M:%S')
             if 'docDate' in bill_dict and bill_dict['docDate']:
                 bill_dict['docDate'] = bill_dict['docDate'].strftime('%d/%m/%Y')
             if 'validUpto' in bill_dict and bill_dict['validUpto']:
@@ -775,8 +789,8 @@ def getMatchingPurchaseewaybillsMissing():
                             dbo.EWayBillPortalDetails.transporterId, dbo.EWayBillPortalDetails.actualDist, dbo.EWayBillPortalDetails.quantity, dbo.EWayBillPortalDetails.id, dbo.EWayBillPortalDetails.toGstin, dbo.EWayBillPortalDetails.fromGstin, 
                             dbo.EWayBillPortalDetails.SaleBill_Print, dbo.EWayBillPortalDetails.EWayBill_Print, dbo.EWayBillPortalDetails.totInvValue, dbo.nt_1_sugarpurchase.LORRYNO
     FROM   dbo.EWayBillPortalDetails LEFT OUTER JOIN
-                            dbo.nt_1_sugarpurchase ON dbo.EWayBillPortalDetails.ewayBillDate = dbo.nt_1_sugarpurchase.doc_date AND dbo.EWayBillPortalDetails.vehicleNo = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(nt_1_sugarpurchase.LORRYNO, ' ', ''), '-', ''),'/',''),'  ',''),'_',''),'=',''),':',''),'.','')
-    WHERE  (dbo.nt_1_sugarpurchase.LORRYNO IS NULL) and dbo.EWayBillPortalDetails.ewayBillDate = :doc_date
+                            dbo.nt_1_sugarpurchase ON CAST(dbo.EWayBillPortalDetails.ewayBillDate AS DATE) = dbo.nt_1_sugarpurchase.doc_date AND dbo.EWayBillPortalDetails.vehicleNo = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(nt_1_sugarpurchase.LORRYNO, ' ', ''), '-', ''),'/',''),'  ',''),'_',''),'=',''),':',''),'.','')
+    WHERE  (dbo.nt_1_sugarpurchase.LORRYNO IS NULL) and CAST(dbo.EWayBillPortalDetails.ewayBillDate AS DATE) = :doc_date
                 '''), {
                     'doc_date': doc_date,
                 })

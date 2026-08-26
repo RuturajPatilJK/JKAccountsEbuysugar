@@ -324,3 +324,69 @@ def ebuysugar_dashboard():
         return jsonify(r.json())
     except Exception as e:
         return jsonify({'status': '0', 'error': str(e), 'info': []}), 500
+
+
+# ─── eTrack (JK HRMS) Dashboard Route ────────────────────────────────────────
+
+ETRACK_BASE_URL = 'https://jkhrms.vaniasolutions.com:9093/api/JKDashboard'
+
+ETRACK_COMPANIES = [
+    {'id': 9,  'name': 'JK India eAgriTech Ltd'},
+    {'id': 11, 'name': 'JK Wealth Pvt Ltd'},
+    {'id': 13, 'name': 'XYZ Company'},
+    {'id': 14, 'name': 'Agrahyah Technologies Pvt Ltd'},
+    {'id': 15, 'name': 'JK Villa'},
+    {'id': 16, 'name': 'RNS Facilities Services'},
+    {'id': 17, 'name': 'LATA DIXIT TECH PVT LTD'},
+]
+
+
+def fetch_etrack(endpoint, company_id, filter_date):
+    url = f'{ETRACK_BASE_URL}/{endpoint}?filterDate={filter_date}&companyId={company_id}'
+    r = requests.get(url, timeout=15)
+    r.raise_for_status()
+    return r.json()
+
+
+@app.route(API_URL + '/etrack-dashboard', methods=['GET'])
+def etrack_dashboard():
+    company_id = request.args.get('companyId', '16')
+    filter_date = request.args.get('filterDate') or date.today().strftime('%Y-%m-%d')
+
+    result = {'companies': ETRACK_COMPANIES, 'companyId': int(company_id), 'filterDate': filter_date}
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        counts_future   = pool.submit(fetch_etrack, 'GetAdminDashboardCounts', company_id, filter_date)
+        total_future    = pool.submit(fetch_etrack, 'GetTotalEmployeeList', company_id, filter_date)
+        present_future  = pool.submit(fetch_etrack, 'GetPresentEmployeeList', company_id, filter_date)
+        absent_future   = pool.submit(fetch_etrack, 'GetAbsentEmployeeList', company_id, filter_date)
+
+    try:
+        counts_data = counts_future.result()
+        result['counts'] = counts_data.get('Data', {})
+    except Exception as e:
+        result['counts'] = {}
+        result['countsError'] = str(e)
+
+    try:
+        total_data = total_future.result()
+        result['totalEmployees'] = total_data.get('Data', [])
+    except Exception as e:
+        result['totalEmployees'] = []
+        result['totalEmployeesError'] = str(e)
+
+    try:
+        present_data = present_future.result()
+        result['presentEmployees'] = present_data.get('Data', [])
+    except Exception as e:
+        result['presentEmployees'] = []
+        result['presentEmployeesError'] = str(e)
+
+    try:
+        absent_data = absent_future.result()
+        result['absentEmployees'] = absent_data.get('Data', [])
+    except Exception as e:
+        result['absentEmployees'] = []
+        result['absentEmployeesError'] = str(e)
+
+    return jsonify(result)

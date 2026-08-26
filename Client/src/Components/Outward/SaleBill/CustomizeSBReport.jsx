@@ -31,10 +31,10 @@ const CustomizeSBReport = ({ doc_no,tran_type, disabledFeild }) => {
   const oldFormerlyName = sessionStorage.getItem("oldFormerlyName")
 
 
-  const fetchData = async () => {
+  const fetchData = async (signWithDSC = false) => {
     try {
       const response = await fetch(
-        `${API_URL}/generating_saleBill_report?Company_Code=${companyCode}&Year_Code=${Year_Code}&doc_no=${doc_no}&Tran_Type=${tran_type}`
+        `${API_URL}/generating_saleBill_report?Company_Code=${companyCode}&Year_Code=${Year_Code}&doc_no=${doc_no}&Tran_Type=SB`
       );
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -42,13 +42,41 @@ const CustomizeSBReport = ({ doc_no,tran_type, disabledFeild }) => {
       const data = await response.json();
 
       setInvoiceData(data.all_data);
-      generatePdf(data.all_data);
+      generatePdf(data.all_data, signWithDSC);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
 
-  const generatePdf = async (data) => {
+  // Sends the already-generated PDF to the backend to be cryptographically
+  // signed with the company's DSC (.p12), which stays server-side only.
+  const signPdfWithDSC = async (pdfBlob, box) => {
+    try {
+      const formData = new FormData();
+      formData.append("pdf", pdfBlob, "sale_bill.pdf");
+      if (box) {
+        formData.append("box_x1", box.x1);
+        formData.append("box_y1", box.y1);
+        formData.append("box_x2", box.x2);
+        formData.append("box_y2", box.y2);
+      }
+      const response = await fetch(`${API_URL}/sign-customized-sale-bill-dsc`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "DSC signing failed");
+      }
+      return await response.blob();
+    } catch (error) {
+      console.error("DSC signing error:", error);
+      alert(`Digital signature failed, showing unsigned PDF instead.\n${error.message}`);
+      return pdfBlob;
+    }
+  };
+
+  const generatePdf = async (data, signWithDSC = false) => {
 
     const pdf = new jsPDF({ orientation: "portrait" });
     const allData = data?.[0] || {};
@@ -92,7 +120,7 @@ const CustomizeSBReport = ({ doc_no,tran_type, disabledFeild }) => {
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeData.trim());
 
     logoImg.src = logoToUse;
-    logoImg.onload = () => {
+    logoImg.onload = async () => {
 
 const shouldUseImage =
   docDate >= cnameUpdatedDate
@@ -599,7 +627,30 @@ if (rate !== null && rate !== undefined && rate !== "") {
 
       y -= 20;
 
-      pdf.addImage(signImg, "PNG", 157, y + 11, signWidth, signHeight);
+      // For a DSC print, skip the picture signature and instead work out
+      // where it would have gone, in PDF points (bottom-left origin), so the
+      // backend can stamp the real digital signature in that exact spot.
+      // The box sits just below the "Authorised Signatory" text (drawn at
+      // y+28) so the stamp doesn't overlap that label, and is capped well
+      // above the footer strip (footerY = 252mm further down).
+      let dscBox = null;
+      if (signWithDSC) {
+        const ptPerMm = 2.834645669;
+        const pageHeightPt = 297 * ptPerMm; // A4 portrait
+        const boxLeftMm = 150;
+        const boxRightMm = 205;
+        const footerTopMm = 252;
+        const boxTopMm = Math.min(y + 32, footerTopMm - 24);
+        const boxBottomMm = Math.max(Math.min(y + 65, footerTopMm - 4), boxTopMm + 15);
+        dscBox = {
+          x1: boxLeftMm * ptPerMm,
+          x2: boxRightMm * ptPerMm,
+          y1: pageHeightPt - boxBottomMm * ptPerMm,
+          y2: pageHeightPt - boxTopMm * ptPerMm,
+        };
+      } else {
+        pdf.addImage(signImg, "PNG", 157, y + 11, signWidth, signHeight);
+      }
       pdf.text("Authorised Signatory", 168, y + 28);
 
       const footerY = 252;
@@ -618,7 +669,8 @@ if (rate !== null && rate !== undefined && rate !== "") {
       pdf.text("Powered by: Sugarian.app", 12, poweredByY);
 
       const pdfBlob = pdf.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const finalBlob = signWithDSC ? await signPdfWithDSC(pdfBlob, dscBox) : pdfBlob;
+      const pdfUrl = URL.createObjectURL(finalBlob);
        setPdfPreview({
   url: pdfUrl,
   data: {
@@ -661,6 +713,7 @@ else
 />
       )}
       <PrintButton disabledFeild={disabledFeild} fetchData={fetchData} label={"Sale Bill Print"} />
+      {/* <PrintButton disabledFeild={disabledFeild} fetchData={() => fetchData(true)} label={"Sale Bill Print (DSC Signed)"} /> */}
     </div>
   );
 };

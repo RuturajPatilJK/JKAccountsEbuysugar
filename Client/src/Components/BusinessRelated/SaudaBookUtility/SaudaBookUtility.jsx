@@ -27,14 +27,6 @@ const SaudaBookUtility = () => {
   const buyerRef = useRef();
   const navigate = useNavigate();
 
-  const addDays = (dateStr, days) => {
-  const date = new Date(dateStr);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0];
-
-};
-
-
 const today = new Date().toISOString().split("T")[0];
 
   const initialFormState = {
@@ -53,7 +45,8 @@ const today = new Date().toISOString().split("T")[0];
     Sale_Rate: "",
     Commission_Rate: "",
     Sauda_Date: today,
-    Lifting_Date: addDays(today, 3),
+    Lifting_Date: today,
+    Sauda_Lifting_Date: today,
     Narration: "",
     tcs_rate: 0.0,
     gst_rate: 5.0,
@@ -88,6 +81,11 @@ const today = new Date().toISOString().split("T")[0];
   const [shouldFocusBuyer, setShouldFocusBuyer] = useState(false);
   const [grades, setGrades] = useState([]);
   const [selectedPartyName, setSelectedPartyName] = useState("");
+  // Kept outside formData (not sent to the backend - TenderDetails has no
+  // minRate/maxRate columns, so including them would break the save call).
+  const [minRate, setMinRate] = useState(0);
+  const [maxRate, setMaxRate] = useState(0);
+  const [tenderBalance, setTenderBalance] = useState(null);
 
   // Unified logic to handle initialization from tenderData
   useEffect(() => {
@@ -99,13 +97,21 @@ const today = new Date().toISOString().split("T")[0];
       setMillName(tenderData.millshortname || "");
       setMillId(tenderData.mc || "");
       setGrades(availableGrades);
+      setMinRate(parseFloat(tenderData.minRate) || 0);
+      setMaxRate(parseFloat(tenderData.maxRate) || 0);
+      setTenderBalance(
+        tenderData.BALANCE !== undefined && tenderData.BALANCE !== null
+          ? parseFloat(tenderData.BALANCE)
+          : null
+      );
 
       setFormData((prev) => ({
         ...prev,
         Tender_No: tenderData.Tender_No || "",
         tenderid: tenderData.tenderid || "",
         Sauda_Date: today,
-  Lifting_Date: addDays(today, 3),
+        Lifting_Date: today,
+        Sauda_Lifting_Date: today,
         Narration: "",
         // Fix: Use first available grade if gradeCode is not already set
         gradeCode: firstGrade ? firstGrade.gradeCode : (tenderData.GradeCode || ''),
@@ -195,15 +201,25 @@ const handleInputChange = (e) => {
 
 
   const handleTenderSelection = (item) => {
+    const selectionDate = new Date().toISOString().split("T")[0];
     setFormData((prev) => ({
       ...prev,
       Tender_No: item.Tender_No || "",
       ID: item.ID || "",
       Delivery_Type: "C",
       tenderid: item.tenderid || "",
-      Lifting_Date: new Date().toISOString().split("T")[0],
+      Sauda_Date: selectionDate,
+      Lifting_Date: selectionDate,
+      Sauda_Lifting_Date: selectionDate,
       Narration: "",
     }));
+    setMinRate(parseFloat(item.minRate) || 0);
+    setMaxRate(parseFloat(item.maxRate) || 0);
+    setTenderBalance(
+      item.balance !== undefined && item.balance !== null
+        ? parseFloat(item.balance)
+        : null
+    );
 
     const display = `Balance:${item.balance || "0.00"} Season:${item.season || ""} Grade:${item.Grade || ""} Lifting Date:${item.Lifting_Date || ""} Mill Rate:${item.Mill_Rate || ""} Purchase rate${item.Purc_Rate || ""}`;
     setTenderDisplayText(display);
@@ -275,25 +291,69 @@ const handleInputChange = (e) => {
 
     setIsSubmitting(true);
     try {
-      const millRate = parseFloat(formData.Mill_Rate) || 0;
       const saleRate = parseFloat(formData.Sale_Rate) || 0;
 
-      if (millRate > 0 && saleRate > 0) {
-        const minAllowed = millRate * 0.97;
-        if (saleRate < minAllowed) {
-          await Swal.fire({
-            title: "Sale Rate Validation Failed",
-            html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-                <p style="margin: 0; font-size: 1.1rem;">The Sale Rate is too low.</p>
-                <p style="margin: 0; color: #d33; font-weight: bold; font-size: 1.2rem;">Minimum allowed: ${minAllowed.toFixed(2)}</p>
-            </div>`,
-            icon: "error",
-            confirmButtonText: "OK",
-            confirmButtonColor: "#d33",
-          });
-          setIsSubmitting(false);
-          return;
-        }
+      if (saleRate > 0 && minRate > 0 && saleRate < minRate) {
+        await Swal.fire({
+          title: "Sale Rate Validation Failed",
+          html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+              <p style="margin: 0; font-size: 1.1rem;">The Sale Rate is too low.</p>
+              <p style="margin: 0; color: #d33; font-weight: bold; font-size: 1.2rem;">Minimum allowed: ${minRate.toFixed(2)}</p>
+          </div>`,
+          icon: "error",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#d33",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (saleRate > 0 && maxRate > 0 && saleRate > maxRate) {
+        await Swal.fire({
+          title: "Sale Rate Validation Failed",
+          html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+              <p style="margin: 0; font-size: 1.1rem;">The Sale Rate is too high.</p>
+              <p style="margin: 0; color: #d33; font-weight: bold; font-size: 1.2rem;">Maximum allowed: ${maxRate.toFixed(2)}</p>
+          </div>`,
+          icon: "error",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#d33",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const buyerQty = parseFloat(formData.Buyer_Quantal) || 0;
+      if (buyerQty <= 0) {
+        await Swal.fire("Invalid Quantity", "Buyer Quintal cannot be 0. Minimum allowed is 5.", "warning");
+        setIsSubmitting(false);
+        return;
+      }
+      if (buyerQty < 5) {
+        await Swal.fire("Invalid Quantity", "Buyer Quintal must be at least 5.", "warning");
+        setIsSubmitting(false);
+        return;
+      }
+      const buyerQtyRemainder = Math.round((buyerQty % 5) * 1000) / 1000;
+      if (buyerQtyRemainder !== 0) {
+        await Swal.fire("Invalid Quantity", "Buyer Quintal must be a multiple of 5 (e.g. 5, 10, 15, ...).", "warning");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (tenderBalance !== null && buyerQty > tenderBalance) {
+        await Swal.fire({
+          title: "Quantity Exceeds Balance",
+          html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+              <p style="margin: 0; font-size: 1.1rem;">Buyer Quintal cannot exceed the available tender balance.</p>
+              <p style="margin: 0; color: #d33; font-weight: bold; font-size: 1.2rem;">Available balance: ${tenderBalance.toFixed(2)}</p>
+          </div>`,
+          icon: "error",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#d33",
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       let missingFields = [];
@@ -367,6 +427,7 @@ const handleInputChange = (e) => {
       }
       const displayText = `Balance:${balance.toFixed(2)} Grade:${formData.gradeCode} Mill Rate:${formData.Mill_Rate} Tender Date:${tenderData.Tender_Date || ""}`;
       setTenderDisplayText(displayText);
+      setTenderBalance(parseFloat(balance) || 0);
     } catch (err) {
       console.error("Failed to refresh tender balance", err);
     }
@@ -456,7 +517,8 @@ const handleInputChange = (e) => {
       Mill_Rate: prev.Mill_Rate,
       Purchase_Rate: prev.Purchase_Rate,
       Sauda_Date: freshToday,
-      Lifting_Date: addDays(freshToday, 3),  // ← was: new Date()... both set to today
+      Lifting_Date: freshToday,
+      Sauda_Lifting_Date: freshToday,
     }));
 
     setNetAmount("0.00");
@@ -657,6 +719,7 @@ const handleInputChange = (e) => {
               <Box display="flex" gap={2}>
                 <TextField type="date" size="small" fullWidth name="Sauda_Date" label="Sauda Date" value={formData.Sauda_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
                 <TextField type="date" size="small" fullWidth name="Lifting_Date" label="Payment Date" value={formData.Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
+                <TextField type="date" size="small" fullWidth name="Sauda_Lifting_Date" label="Sauda Lifting Date" value={formData.Sauda_Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
               </Box>
             </Grid>
 

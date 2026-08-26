@@ -70,7 +70,7 @@ const CATEGORY_COLORS = {
     Silver: "#64748b",
 };
 
-const NAV_IDS = ["ebuysugar", "chinimandi", "bioenergy", "agriinsights", "seic", "closing-analytics"];
+const NAV_IDS = ["ebuysugar", "chinimandi", "bioenergy", "agriinsights", "seic", "closing-analytics", "etrack-info"];
 
 const GA4_RANGES = [
     { id: "today", label: "Today" },
@@ -1280,6 +1280,313 @@ function SEICSection() {
     );
 }
 
+// ─── eTrack Info (JK HRMS) Section ─────────────────────────────────────────────
+
+const ETRACK_ACC = "#4338ca";
+const ETRACK_COMPANIES = [
+    { id: 9, name: "JK India eAgriTech Ltd" },
+    { id: 11, name: "JK Wealth Pvt Ltd" },
+    { id: 13, name: "XYZ Company" },
+    { id: 14, name: "Agrahyah Technologies Pvt Ltd" },
+    { id: 15, name: "JK Villa" },
+    { id: 16, name: "RNS Facilities Services" },
+    { id: 17, name: "LATA DIXIT TECH PVT LTD" },
+];
+
+function ETrackSection() {
+    const [companyId, setCompanyId] = useState(16);
+    const [filterDate, setFilterDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [employeeSearch, setEmployeeSearch] = useState("");
+
+    useEffect(() => {
+        setLoading(true);
+        setError(null);
+        axios.get(`${API}/etrack-dashboard`, { params: { companyId, filterDate } })
+            .then((r) => setData(r.data))
+            .catch((e) => setError(e?.response?.data?.error || e.message))
+            .finally(() => setLoading(false));
+    }, [companyId, filterDate]);
+
+    const counts = data?.counts || {};
+    const totalEmployees = data?.totalEmployees || [];
+    const presentEmployees = data?.presentEmployees || [];
+    const absentEmployees = data?.absentEmployees || [];
+
+    const filteredTotalEmployees = employeeSearch.trim()
+        ? totalEmployees.filter((e) => {
+            const s = employeeSearch.trim().toLowerCase();
+            return [e.EmpName, e.EmployeeNo, e.Department, e.Designation]
+                .some((v) => String(v || "").toLowerCase().includes(s));
+        })
+        : totalEmployees;
+
+    const presenceDonutData = [
+        { name: "Present", value: counts.PresentCount || 0.001 },
+        { name: "Absent", value: counts.AbsentCount || 0.001 },
+    ];
+
+    const departmentChartData = (() => {
+        const byDept = {};
+        totalEmployees.forEach((e) => {
+            const dept = e.Department || "Other";
+            byDept[dept] = byDept[dept] || { department: dept, total: 0, present: 0 };
+            byDept[dept].total += 1;
+        });
+        presentEmployees.forEach((e) => {
+            const dept = e.Department || "Other";
+            if (byDept[dept]) byDept[dept].present += 1;
+        });
+        return Object.values(byDept)
+            .map((d) => ({ ...d, absent: Math.max(d.total - d.present, 0) }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 8);
+    })();
+
+    const selectedCompanyName = ETRACK_COMPANIES.find((c) => c.id === companyId)?.name || "";
+    const filterDateLabel = new Date(`${filterDate}T00:00:00`).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric",
+    });
+    const isToday = filterDate === new Date().toISOString().slice(0, 10);
+
+    return (
+        <section id="etrack-info" style={{ scrollMarginTop: 88, marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+                <SectionHead
+                    title="eTrack Info"
+                    subtitle={`Employee attendance · ${selectedCompanyName} · ${filterDateLabel}`}
+                    logoEl={
+                        <div style={{
+                            width: 52, height: 52, borderRadius: 10, flexShrink: 0,
+                            background: `linear-gradient(135deg, ${ETRACK_ACC}, #312e81)`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m5-4a4 4 0 100-8 4 4 0 000 8zm6 0a4 4 0 100-8 4 4 0 000 8z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 20v-2a4 4 0 014-4h0a4 4 0 014 4v2" />
+                            </svg>
+                        </div>
+                    }
+                />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <input
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => e.target.value && setFilterDate(e.target.value)}
+                        style={{
+                            padding: "7px 12px", borderRadius: 8,
+                            border: `1px solid ${ETRACK_ACC}55`, fontSize: ".8rem",
+                            fontFamily: "var(--font-sans)", fontWeight: 600,
+                            color: "var(--text-body)", background: "var(--surface-card)",
+                            cursor: "pointer", outline: "none",
+                        }}
+                    />
+                    <select
+                        value={companyId}
+                        onChange={(e) => setCompanyId(Number(e.target.value))}
+                        style={{
+                            padding: "7px 12px", borderRadius: 8,
+                            border: `1px solid ${ETRACK_ACC}55`, fontSize: ".8rem",
+                            fontFamily: "var(--font-sans)", fontWeight: 600,
+                            color: "var(--text-body)", background: "var(--surface-card)",
+                            cursor: "pointer", outline: "none",
+                        }}
+                    >
+                        {ETRACK_COMPANIES.map((c) => (
+                            <option key={c.id} value={c.id}>{c.id} — {c.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {error && <ErrorCard message={error} />}
+
+            {!error && loading && <SectionSkeleton accent={ETRACK_ACC} />}
+
+            {!error && !loading && (
+                <Card accent={ETRACK_ACC}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+                        <KPICard label="Total Employees" value={fmt(counts.TotalEmployees)} accent={ETRACK_ACC} />
+                        <KPICard label={isToday ? "Present Today" : "Present"} value={fmt(counts.PresentCount)} accent="#16a34a" />
+                        <KPICard label={isToday ? "Absent Today" : "Absent"} value={fmt(counts.AbsentCount)} accent="#dc2626" />
+                        <KPICard label="On Leave" value={fmt(counts.LeaveCount)} accent="#d97706" />
+                        <KPICard label="Marked via Mobile" value={fmt(counts.MobileCount)} accent="#0b6e6e" />
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {/* Present employees — left */}
+                        <div style={{
+                            background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)",
+                            borderRadius: 10, padding: 12,
+                        }}>
+                            <ChartHeader title="Present Employees" sub={`${presentEmployees.length} employee${presentEmployees.length !== 1 ? "s" : ""} · ${filterDateLabel}`} />
+                            {presentEmployees.length === 0 ? (
+                                <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "24px 0", fontSize: 13 }}>
+                                    No one marked present
+                                </div>
+                            ) : (
+                                <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                        <thead style={{ position: "sticky", top: 0, background: "var(--surface-sunken)" }}>
+                                            <tr style={{ borderBottom: "2px solid var(--border-subtle)" }}>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Employee</th>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Emp ID</th>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Department</th>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Designation</th>
+                                                <th style={{ padding: "6px 10px", textAlign: "right", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Punch Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {presentEmployees.map((e, i) => (
+                                                <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-body)", textAlign: "left" }}>{e.EmpName}</td>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.EmployeeNo}</td>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.Department}</td>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.Designation}</td>
+                                                    <td style={{ padding: "7px 10px", color: "#16a34a", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{e.Time}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Absent employees — right */}
+                        <div style={{
+                            background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)",
+                            borderRadius: 10, padding: 12,
+                        }}>
+                            <ChartHeader title="Absent Employees" sub={`${absentEmployees.length} employee${absentEmployees.length !== 1 ? "s" : ""} · ${filterDateLabel}`} />
+                            {absentEmployees.length === 0 ? (
+                                <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "24px 0", fontSize: 13 }}>
+                                    Nobody is absent
+                                </div>
+                            ) : (
+                                <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                        <thead style={{ position: "sticky", top: 0, background: "var(--surface-sunken)" }}>
+                                            <tr style={{ borderBottom: "2px solid var(--border-subtle)" }}>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Employee</th>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Emp ID</th>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Department</th>
+                                                <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Designation</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {absentEmployees.map((e, i) => (
+                                                <tr key={i} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-body)", textAlign: "left" }}>{e.EmpName}</td>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.EmployeeNo}</td>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.Department}</td>
+                                                    <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.Designation}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Device Breakdown | Department-wise Attendance | All Employees — one row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1fr 1.3fr", gap: 10, alignItems: "start" }}>
+                        <div style={{
+                            background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)",
+                            borderRadius: 10, padding: 12,
+                        }}>
+                            <DeviceDonut data={presenceDonutData.map((d) => ({ deviceCategory: d.name, activeUsers: d.value }))} />
+                        </div>
+
+                        <div style={{
+                            background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)",
+                            borderRadius: 10, padding: 12,
+                        }}>
+                            <ChartHeader title="Department-wise Attendance" sub={`Present vs Absent · ${filterDateLabel}`} />
+                            {departmentChartData.length === 0 ? (
+                                <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "40px 0", fontSize: 13 }}>
+                                    No department data
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <BarChart data={departmentChartData} margin={{ top: 4, right: 8, left: 0, bottom: 32 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                                        <XAxis dataKey="department" tickFormatter={(v) => shortLabel(v, 10)}
+                                            tick={{ fontSize: 10, fill: "var(--text-subtle)" }}
+                                            angle={-25} textAnchor="end" height={40}
+                                            axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fontSize: 10, fill: "var(--text-subtle)" }} axisLine={false} tickLine={false} width={28} allowDecimals={false} />
+                                        <Tooltip content={<ChartTooltip />} />
+                                        <Legend iconType="circle" iconSize={7} wrapperStyle={{ fontSize: 11 }} />
+                                        <Bar dataKey="present" name="Present" fill="#16a34a" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                                        <Bar dataKey="absent" name="Absent" fill="#dc2626" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+
+                        {/* All employees — full company list */}
+                        <div style={{
+                            background: "var(--surface-sunken)", border: "1px solid var(--border-subtle)",
+                            borderRadius: 10, padding: 12,
+                        }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 4 }}>
+                            <ChartHeader title="All Employees" sub={`${filteredTotalEmployees.length} of ${totalEmployees.length} employee${totalEmployees.length !== 1 ? "s" : ""} · ${selectedCompanyName}`} />
+                            <input
+                                type="text"
+                                value={employeeSearch}
+                                onChange={(e) => setEmployeeSearch(e.target.value)}
+                                placeholder="Search name, emp id, department…"
+                                style={{
+                                    padding: "6px 12px", borderRadius: 8,
+                                    border: "1px solid var(--border-subtle)", fontSize: ".78rem",
+                                    fontFamily: "var(--font-sans)", color: "var(--text-body)",
+                                    background: "var(--surface-card)", outline: "none", minWidth: 220,
+                                }}
+                            />
+                        </div>
+                        {totalEmployees.length === 0 ? (
+                            <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "24px 0", fontSize: 13 }}>
+                                No employees found
+                            </div>
+                        ) : (
+                            <div style={{ overflowX: "auto", maxHeight: 480, overflowY: "auto" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                                    <thead style={{ position: "sticky", top: 0, background: "var(--surface-sunken)" }}>
+                                        <tr style={{ borderBottom: "2px solid var(--border-subtle)" }}>
+                                            <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Employee</th>
+                                            <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Emp ID</th>
+                                            <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Company</th>
+                                            <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Department</th>
+                                            <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Designation</th>
+                                            {/* <th style={{ padding: "6px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Work Location</th> */}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredTotalEmployees.map((e, i) => (
+                                            <tr key={e.EmployeeId ?? i} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                                                <td style={{ padding: "7px 10px", color: "var(--text-body)", textAlign: "left" }}>{e.EmpName}</td>
+                                                <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.EmployeeNo}</td>
+                                                <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.CompanyName}</td>
+                                                <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.Department}</td>
+                                                <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.Designation}</td>
+                                                {/* <td style={{ padding: "7px 10px", color: "var(--text-subtle)", textAlign: "left" }}>{e.WorkLocation}</td> */}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        </div>
+                    </div>
+                </Card>
+            )}
+        </section>
+    );
+}
+
 // ─── Country Horizontal Bar ───────────────────────────────────────────────────
 
 const CountryChart = ({ data = [], accent }) => (
@@ -2037,6 +2344,23 @@ function Sidebar({ activeNav }) {
 
             {navLink("closing-analytics", "Accounts Closing Analytics", jkIndiaLogoImg)}
 
+            <div style={{ height: 1, background: "rgba(255,255,255,.08)", margin: "6px 0" }} />
+
+            <div style={{
+                fontSize: ".6rem", fontWeight: 700, letterSpacing: ".18em",
+                textTransform: "uppercase", color: "rgba(255,255,255,.32)", padding: "2px 10px 6px",
+            }}>
+                eTrack Info
+            </div>
+
+            {navLink("etrack-info", "eTrack Info", null,
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fcfaf4" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m5-4a4 4 0 100-8 4 4 0 000 8zm6 0a4 4 0 100-8 4 4 0 000 8z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 20v-2a4 4 0 014-4h0a4 4 0 014 4v2" />
+                </svg>,
+                `${CLOSING_ACC}cc`
+            )}
+
             <div style={{
                 marginTop: "auto", padding: "12px 10px 2px",
                 borderTop: "1px solid rgba(255,255,255,.08)",
@@ -2526,6 +2850,9 @@ export default function GoogleAnalyticsDashboard() {
                                 <ClosingStock />
                             </div>
                         </section>
+
+                        {/* eTrack Info */}
+                        <ETrackSection />
 
                     </div>
                 </main>

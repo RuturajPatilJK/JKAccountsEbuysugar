@@ -8,7 +8,7 @@ import PdfPreview from "../EWayReport/PDFPreview";
 const API_URL = process.env.REACT_APP_API;
 const apikey = process.env.REACT_APP_API_URL;
 
-const EWayBillReport = ({ saleId, ewayBillNo }) => {
+const EWayBillReport = ({ saleId, ewayBillNo, hidePreview, onReady }) => {
     const [apiData, setApiData] = useState(null);
     const [pdfPreview, setPdfPreview] = useState(null);
 
@@ -434,12 +434,17 @@ const EWayBillReport = ({ saleId, ewayBillNo }) => {
         const pdfData = pdf.output("datauristring");
         setPdfPreview(pdfData)
         const sanitizedBilltoname = apiData[0].Buyer_Name?.replace(/\s+/g, '').slice(0, 12);
-        pdf.save(`${sanitizedBilltoname}-SB${apiData[0].doc_no}-${ewayBillNo}.pdf`);
+        if (!hidePreview) {
+            pdf.save(`${sanitizedBilltoname}-SB${apiData[0].doc_no}-${ewayBillNo}.pdf`);
+        }
+        if (onReady) {
+            onReady(pdf.output("blob"), apiData[0]);
+        }
     };
 
     return (
         <div className="centered-container">
-            {pdfPreview && <PdfPreview pdfData={pdfPreview} apiData={apiData[0]} label={"EwayBill"} ewayBillNo={ewayBillNo} />}
+            {!hidePreview && pdfPreview && <PdfPreview pdfData={pdfPreview} apiData={apiData[0]} label={"EwayBill"} ewayBillNo={ewayBillNo} />}
         </div>
     );
 };

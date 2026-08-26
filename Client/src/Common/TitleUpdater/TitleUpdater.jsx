@@ -43,6 +43,7 @@ function TitleUpdater() {
             '/tender_head': "Tender Purchase",
             '/sauda-book-utility-page': "U - Sauda Book",
             '/sauda-book-utility': "Sauda Book",
+            '/sauda-shifting-utility': "U - Sauda Shifting",
             '/delivery-order-utility': "U - Delivery Order",
             '/delivery-order': "Delivery Order",
             '/SaleBill-utility': "U -Sale Bill",
