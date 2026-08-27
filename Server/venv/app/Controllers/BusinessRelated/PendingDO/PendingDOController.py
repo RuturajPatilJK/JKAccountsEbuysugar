@@ -16,7 +16,7 @@ def sync_pending_delivery_order_for_do(*, tenderdetailid, tenderid, doid, do_no,
                                         bill_to_ac_code, bill_to_accoid,
                                         ship_to_ac_code, ship_to_accoid,
                                         mill_rate, ebuy_user_id,
-                                        quantal, sale_rate):
+                                        quantal, sale_rate, third_party_do=None):
 
     if not tenderdetailid:
         return
@@ -73,6 +73,7 @@ def sync_pending_delivery_order_for_do(*, tenderdetailid, tenderid, doid, do_no,
         'do_no': do_no,
         'Approved': 'Y',
         'DOc_Date': now,
+        'Third_Party_Do': third_party_do,
     }
 
     # Matched by doid (unique per DO), not tenderdetailid - a single sauda

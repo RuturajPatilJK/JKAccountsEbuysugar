@@ -1,6 +1,6 @@
 import traceback
 from flask import Flask, jsonify, request
-from app import app, db
+from app import app, db,socketio
 from app.models.Outword.SaleBill.SaleBillModels import SaleBillHead,SaleBillDetail
 from app.models.Reports.GLedeger.GLedgerModels import Gledger
 from sqlalchemy import text
@@ -991,7 +991,10 @@ def Generate_SaleBill():
                  'DOC_NO': updated_doc_no, 'saleid': saleid}
             )
 
-        db.session.commit()   
+        db.session.commit() 
+
+        socketio.emit('delivery_order_updated')
+  
         
         return jsonify({'Successfully Updated': updated_doc_no}), 200
     except SQLAlchemyError as e:

@@ -70,11 +70,12 @@ TASK_DETAILS_QUERY = '''
                   dbo.qrytenderdetail.ShipToname, dbo.qrytenderdetail.buyershortname, dbo.qrytenderdetail.buyerpartymobno, dbo.qrytenderdetail.ebuyid, ISNULL(SUM(dbo.nt_1_deliveryorder.quantal), 0) AS despatched,
                   ISNULL(dbo.qrytenderdetail.Buyer_Quantal - ISNULL(SUM(dbo.nt_1_deliveryorder.quantal), 0), 0) AS balance, dbo.qrytenderdetail.gradeid, dbo.qrytenderdetail.gradeCode, dbo.nt_1_tenderGradeDetails.gradeRate,
                   gradeDetails.System_Name_E AS detailGradeName, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate as detailPurchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate,
-                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No
+                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No, dbo.nt_1_tenderdetails.Sauda_Lifting_Date
 FROM     dbo.nt_1_tenderGradeDetails RIGHT OUTER JOIN
                   dbo.qrytenderdetail ON dbo.nt_1_tenderGradeDetails.tenderid = dbo.qrytenderdetail.tenderid AND dbo.nt_1_tenderGradeDetails.gradeid = dbo.qrytenderdetail.gradeid LEFT OUTER JOIN
                   dbo.nt_1_systemmaster AS gradeDetails ON dbo.nt_1_tenderGradeDetails.gradeid = gradeDetails.systemid LEFT OUTER JOIN
-                  dbo.nt_1_deliveryorder ON dbo.qrytenderdetail.tenderdetailid = dbo.nt_1_deliveryorder.tenderdetailid RIGHT OUTER JOIN
+                  dbo.nt_1_deliveryorder ON dbo.qrytenderdetail.tenderdetailid = dbo.nt_1_deliveryorder.tenderdetailid LEFT OUTER JOIN
+                  dbo.nt_1_tenderdetails ON dbo.qrytenderdetail.tenderdetailid = dbo.nt_1_tenderdetails.tenderdetailid RIGHT OUTER JOIN
                   dbo.nt_1_tender ON dbo.qrytenderdetail.tenderid = dbo.nt_1_tender.tenderid LEFT OUTER JOIN
                   dbo.nt_1_gstratemaster ON dbo.nt_1_tender.Company_Code = dbo.nt_1_gstratemaster.Company_Code AND dbo.nt_1_tender.gstratecode = dbo.nt_1_gstratemaster.Doc_no LEFT OUTER JOIN
                   dbo.qrymstaccountmaster AS Broker ON dbo.nt_1_tender.bk = Broker.accoid LEFT OUTER JOIN
@@ -97,7 +98,7 @@ GROUP BY Mill.Ac_Name_E, dbo.nt_1_tender.Mill_Code, dbo.nt_1_tender.mc, dbo.nt_1
                   dbo.qrytenderdetail.subbrokercityname, dbo.qrytenderdetail.tcs_rate, dbo.qrytenderdetail.gst_rate, dbo.qrytenderdetail.tcs_amt, dbo.qrytenderdetail.gst_amt, dbo.qrytenderdetail.ShipTo, dbo.qrytenderdetail.CashDiff, 
                   dbo.qrytenderdetail.shiptoid, dbo.qrytenderdetail.ShipToname, dbo.qrytenderdetail.buyershortname, dbo.qrytenderdetail.buyerpartymobno, dbo.qrytenderdetail.ebuyid, dbo.qrytenderdetail.gradeid, dbo.qrytenderdetail.gradeCode,
                   dbo.nt_1_tenderGradeDetails.gradeRate, dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, gradeDetails.System_Name_E, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate,
-                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No
+                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No, dbo.nt_1_tenderdetails.Sauda_Lifting_Date
 ORDER BY dbo.qrytenderdetail.ID
 '''
 
@@ -113,6 +114,8 @@ def format_dates_details(row):
         row['Sauda_Date'] = row['Sauda_Date'].strftime('%Y-%m-%d') if row['Sauda_Date'] else None
     if 'payment_date' in row:
         row['payment_date'] = row['payment_date'].strftime('%Y-%m-%d') if row['payment_date'] else None
+    if 'Sauda_Lifting_Date' in row:
+        row['Sauda_Lifting_Date'] = row['Sauda_Lifting_Date'].strftime('%Y-%m-%d') if row['Sauda_Lifting_Date'] else None
     return row
 
 #Fetching Dates for TenderPurchase 
@@ -1200,7 +1203,9 @@ def Stock_Entry_tender_purchase():
                     item['Sauda_Date'] = datetime.strptime(item['Sauda_Date'], '%Y-%m-%d').date()
                 if 'Lifting_Date' in item:
                     item['Lifting_Date'] = datetime.strptime(item['Lifting_Date'], '%Y-%m-%d').date()
-                
+                if 'Sauda_Lifting_Date' in item:
+                    item['Sauda_Lifting_Date'] = datetime.strptime(item['Sauda_Lifting_Date'], '%Y-%m-%d').date() if item['Sauda_Lifting_Date'] else None
+
                 if item['rowaction'] == "add":
                     del item['rowaction']
                     item.update({'Tender_No': tender_no, 'tenderid': tenderid})

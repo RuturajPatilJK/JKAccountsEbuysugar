@@ -69,10 +69,6 @@ class TenderHead(db.Model):
     Unit = db.Column(db.String(3))
     gstid = db.Column(db.Integer)
 
-    # Sauda Shifting remarks/references (see SaudaShiftingController.py) -
-    # a single JSON blob: {"Shift": [...], "Received": [...]}, one entry per
-    # shift this tender was the source/destination of. Nullable, additive -
-    # no other existing column touched.
     Remark = db.Column(NVARCHAR(None), nullable=True)
 
     details = db.relationship('TenderDetails', backref='head', lazy=True)

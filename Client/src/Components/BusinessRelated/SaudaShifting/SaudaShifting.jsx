@@ -42,6 +42,7 @@ const emptyPanel = {
 
 const SaudaShifting = () => {
   const companyCode = sessionStorage.getItem("Company_Code");
+  const username = sessionStorage.getItem("username");
   const navigate = useNavigate();
 
   const [left, setLeft] = useState(emptyPanel);
@@ -147,6 +148,7 @@ const SaudaShifting = () => {
       const response = await axios.post(`${API_URL}/shift-sauda-entry`, {
         tenderdetailid,
         target_tenderid: targetTenderId,
+        shifted_by: username,
       });
 
       showMessage(response.data.message || "Sauda entry shifted successfully.");

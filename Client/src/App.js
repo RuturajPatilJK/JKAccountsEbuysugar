@@ -35,12 +35,8 @@ const hideNavbarPaths = ['/', '/company-list', '/landing', '/create-accounting-y
    useEffect(() => {
     const socket = io(socketURL, { transports: ["websocket"] });
   
-    console.log("Socket Connected for PostDate");
-  
     const handlePostDateUpdated = async (data) => {
-      console.log("PostDate_Updated", data);
        sessionStorage.setItem("Post_Date", data.record.Post_Date);
-  
   
       // if backend sends { record } or { id } — refetch in both cases
     };

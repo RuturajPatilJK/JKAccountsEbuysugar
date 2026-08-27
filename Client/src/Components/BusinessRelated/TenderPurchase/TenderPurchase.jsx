@@ -94,16 +94,17 @@ const headerCellStyle = {
   },
 };
 
-// Sauda Shifting remarks tables (see SaudaShiftingController.py)
-const remarkHeaderCellStyle = {
+
+const headerCellStylelog = {
   fontWeight: "bold",
-  fontSize: "12px",
-  padding: "6px 8px",
-  backgroundColor: "#f5f5f5",
-};
-const remarkBodyCellStyle = {
-  fontSize: "12px",
-  padding: "5px 8px",
+  backgroundColor: "#3f51b5",
+  color: "white",
+  padding: "2px",
+  textAlign: "left",
+  "&:hover": {
+    backgroundColor: "#303f9f",
+    cursor: "pointer",
+  },
 };
 
 const API_URL = process.env.REACT_APP_API;
@@ -173,6 +174,9 @@ const TenderPurchase = () => {
   const [selfSoldQty, setSelfSoldQty] = useState(0);
   const [selfEbuySold, setSelfEbuySold] = useState(0);
 
+  const [receivedInData, setReceivedInData] = useState([]);
+  const [shiftedOutData, setShiftedOutData] = useState([]);
+
   const companyCode = sessionStorage.getItem("Company_Code");
   const Year_Code = sessionStorage.getItem("Year_Code");
   const username = sessionStorage.getItem("username");
@@ -193,20 +197,6 @@ const TenderPurchase = () => {
   const drpType = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Tracks the record currently loaded in this form so the socket handlers
-  // below (which run inside a mount-once useEffect and would otherwise see a
-  // stale `formData`) can tell whether an incoming tender_updated/tender_deleted
-  // event is actually about this open record before acting on it.
-  const openRecordRef = useRef({ tenderid: null, Tender_No: null });
-
-  // Guards against a real race: on mount (no selected record) an effect
-  // kicks off fetchLastRecord() to fetch the NEXT Tender No async. If
-  // Cancel is clicked before that resolves, handleCancel's own fetch of the
-  // actual LAST record can finish first - and the still in-flight "next
-  // number" fetch then overwrites it when it lands. Bumped by any action
-  // that should supersede a pending fetchLastRecord() call.
-  const tenderNoActionRef = useRef(0);
 
   const selectedRecord = location.state?.selectedRecord;
   const permissions = location.state?.permissionsData;
@@ -275,14 +265,6 @@ const TenderPurchase = () => {
   };
 
   const [formData, setFormData] = useState(initialFormData);
-  // Sauda Shifting remarks/references (see SaudaShiftingController.py) -
-  // kept separate from formData on purpose: formData is sent back wholesale
-  // on save, and these aren't real nt_1_tender columns.
-  const [shiftRemarks, setShiftRemarks] = useState({ ShiftedOut: [], ReceivedIn: [] });
-
-  useEffect(() => {
-    openRecordRef.current = { tenderid: formData.tenderid, Tender_No: formData.Tender_No };
-  }, [formData.tenderid, formData.Tender_No]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [paymentToManuallySet, setPaymentToManuallySet] = useState(false);
@@ -308,12 +290,15 @@ const TenderPurchase = () => {
   const [self_accoid, set_self_accoid] = useState("");
   const [self_acName, set_self_acName] = useState("");
 
+
+
   const [formDataDetail, setFormDataDetail] = useState({
     Buyer_Quantal: 0.0,
     Sale_Rate: 0.0,
     Commission_Rate: 0.0,
     Sauda_Date: new Date().toISOString().split("T")[0],
     Lifting_Date: formData?.Lifting_Date || "",
+    Sauda_Lifting_Date: "",
     Narration: "",
     tcs_rate: 0.0,
     gst_rate: 0.0,
@@ -456,13 +441,8 @@ const TenderPurchase = () => {
     });
     socket.on("tender_updated", async (data) => {
       try {
-        const { Tender_No } = data;
+        const { tenderdetailid, Tender_No } = data;
         if (!Tender_No) return;
-
-        // Only refetch if this event is about the record currently open in
-        // THIS form — otherwise any tender update anywhere (any user, any tab)
-        // silently overwrites whatever this form is showing/editing.
-        if (String(Tender_No) !== String(openRecordRef.current.Tender_No)) return;
 
         console.log("Tender Updated:", data);
 
@@ -475,16 +455,7 @@ const TenderPurchase = () => {
     });
 
     socket.on("tender_deleted", (data) => {
-      const tenderid = data?.tenderid;
-      if (!tenderid || String(tenderid) !== String(openRecordRef.current.tenderid)) return;
-
-      console.log("Currently open tender was deleted elsewhere:", tenderid);
-      Swal.fire({
-        icon: "warning",
-        title: "Record Deleted",
-        text: "This tender was deleted from another session. Any unsaved changes here cannot be saved.",
-        confirmButtonText: "OK",
-      });
+      console.log("Tender Deleted:", data.tenderid);
     });
 
     return () => {
@@ -1137,7 +1108,6 @@ const TenderPurchase = () => {
   };
 
   const fetchLastRecord = () => {
-    const myAction = ++tenderNoActionRef.current;
     fetch(
       `${API_URL}/getNextTenderNo_SugarTenderPurchase?Company_Code=${companyCode}&Year_Code=${Year_Code}`,
     )
@@ -1148,10 +1118,6 @@ const TenderPurchase = () => {
         return response.json();
       })
       .then((data) => {
-        // Skip if a newer action (Cancel, double-click, Next, etc. - see
-        // fetchTenderData) started after this "next number" fetch began -
-        // otherwise this stale response would clobber its result.
-        if (myAction !== tenderNoActionRef.current) return;
         setFormData((prevState) => ({
           ...prevState,
           Tender_No: data.next_doc_no,
@@ -1174,13 +1140,13 @@ const TenderPurchase = () => {
     setIsEditMode(false);
     setIsEditing(true);
     setFormData(initialFormData);
-    // A blank new tender has no shift history yet - otherwise whatever was
-    // loaded on the previous record stays visible on this fresh form.
-    setShiftRemarks({ ShiftedOut: [], ReceivedIn: [] });
     fetchLastRecord();
     setLastTenderDetails([]);
     setLastTenderData({});
     setUsers([]);
+
+    setReceivedInData([]);
+    setShiftedOutData([]);
     millCodeName = "";
     newMill_Code = "";
     gradeName = "";
@@ -1417,6 +1383,7 @@ const TenderPurchase = () => {
         Sauda_Date: user.Sauda_Date || "",
         Lifting_Date:
           index === 0 ? formData.Lifting_Date : user.Lifting_Date || "",
+        Sauda_Lifting_Date: user.Sauda_Lifting_Date || "",
         Narration: user.Narration || "",
         ID: user.id,
         ShipTo: user.ShipTo || 0,
@@ -1577,7 +1544,6 @@ const TenderPurchase = () => {
         } else {
           lockRecord();
         }
-        setShiftRemarks({ ShiftedOut: data.ShiftedOut || [], ReceivedIn: data.ReceivedIn || [] });
         setFormData({
           ...formData,
           ...data.last_tender_head_data,
@@ -2069,6 +2035,7 @@ const TenderPurchase = () => {
           Narration: formDataDetail.Narration,
           Sale_Rate: formDataDetail.Sale_Rate,
           Sauda_Date: formDataDetail.Sauda_Date,
+          Sauda_Lifting_Date: formDataDetail.Sauda_Lifting_Date,
           gst_amt:
             calculatedValues.gstAmtDetail ||
             (newBuyerQuantal * formDataDetail.Sale_Rate * gstCode) / 100 ||
@@ -2300,6 +2267,7 @@ const TenderPurchase = () => {
       Commission_Rate: user.Commission_Rate || 0.0,
       Sauda_Date: user.Sauda_Date || 0.0,
       Lifting_Date: user.Lifting_Date || 0.0,
+      Sauda_Lifting_Date: user.Sauda_Lifting_Date || "",
       Narration: user.Narration || 0.0,
       tcs_rate: user.tcs_rate || 0.0,
       gst_rate: user.gst_rate || 0.0,
@@ -2340,6 +2308,7 @@ const TenderPurchase = () => {
           Narration: detail.Narration,
           Sale_Rate: detail.Sale_Rate,
           Sauda_Date: detail.Sauda_Date,
+          Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
           gst_amt: detail.gst_amt,
           gst_rate: detail.gst_rate,
           //loding_by_us: detail.loding_by_us,
@@ -2359,7 +2328,6 @@ const TenderPurchase = () => {
           Mill_Rate: detail.Mill_Rate,
           Purchase_Rate: detail.Purchase_Rate,
           ebuyid: detail.ebuyid ?? null,
-          Buy_Us: detail.Buy_Us ?? "N",
           rowaction: "Normal",
         }))
       );
@@ -2386,6 +2354,7 @@ const TenderPurchase = () => {
       Narration: detail.Narration || "",
       Sale_Rate: detail.Sale_Rate,
       Sauda_Date: detail.Sauda_Date,
+      Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
       gst_amt: detail.gst_amt,
       gst_rate: detail.gst_rate,
       //loding_by_us: detail.loding_by_us,
@@ -2404,7 +2373,6 @@ const TenderPurchase = () => {
       Mill_Rate: detail.Mill_Rate,
       Purchase_Rate: detail.Purchase_Rate,
       ebuyid: detail.ebuyid ?? null,
-      Buy_Us: detail.Buy_Us ?? "N",
       rowaction: "Normal",
     }));
     setUsers(updatedUsers);
@@ -2499,23 +2467,16 @@ const TenderPurchase = () => {
 
   //common function for navigation and fetching perticular record
   const fetchTenderData = async (endpoint, action) => {
-    // Every caller (double-click, Cancel, Next, Tab-navigate, navigatedRecord)
-    // shares this one staleness token with fetchLastRecord()'s "next number"
-    // fetch. Whichever of these fires last wins - if two overlap, only the
-    // one still current when its response lands is applied; an
-    // out-of-order/slower response is silently dropped instead of
-    // clobbering a newer, already-applied result.
-    const myAction = ++tenderNoActionRef.current;
     try {
       const response = await fetch(endpoint);
       if (response.ok) {
         const data = await response.json();
-        if (myAction !== tenderNoActionRef.current) return;
+
 
         const headData = data[`${action}_tender_head_data`] || {};
         const detailsData = data[`${action}_tender_details_data`] || [];
         const gradeData = data[`${action}_tender_grade_data`] || [];
-        setShiftRemarks({ ShiftedOut: data.ShiftedOut || [], ReceivedIn: data.ReceivedIn || [] });
+
 
         newTenderId = headData.tenderid;
         millCodeName = detailsData[0]?.MillName || "";
@@ -2584,6 +2545,11 @@ const TenderPurchase = () => {
         });
         setGroupData(mergedGrades);
 
+        // Shift tables — safe, independent of the rest of the logic
+        setReceivedInData(Array.isArray(data.ReceivedIn) ? data.ReceivedIn : []);
+        setShiftedOutData(Array.isArray(data.ShiftedOut) ? data.ShiftedOut : []);
+
+
 
         setFormData((prevData) => ({
           ...prevData,
@@ -2629,6 +2595,7 @@ const TenderPurchase = () => {
             Narration: detail.Narration || "",
             Sale_Rate: detail.Sale_Rate,
             Sauda_Date: detail.Sauda_Date,
+          Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
             gst_amt: detail.gst_amt,
             gst_rate: detail.gst_rate,
             //loding_by_us: detail.loding_by_us,
@@ -2648,7 +2615,6 @@ const TenderPurchase = () => {
             Mill_Rate: detail.Mill_Rate,
             Purchase_Rate: detail.Purchase_Rate,
             ebuyid: detail.ebuyid ?? null,
-          Buy_Us: detail.Buy_Us ?? "N",
           }))
         );
       } else {
@@ -3857,6 +3823,10 @@ const TenderPurchase = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+
+
+
         </Box>
 
         {isLoading && (
@@ -4268,6 +4238,27 @@ const TenderPurchase = () => {
                                 }}
                               />
                             </Grid>
+
+                            <Grid item xs={12} sm={2}>
+                              <TextField
+                                label="Sauda Lifting Date"
+                                type="date"
+                                size="small"
+                                fullWidth
+                                name="Sauda_Lifting_Date"
+                                value={formDataDetail.Sauda_Lifting_Date}
+                                onChange={(e) =>
+                                  handleDetailDateChange(e, "Sauda_Lifting_Date")
+                                }
+                                disabled={!isEditing && addOneButtonEnabled}
+                                InputLabelProps={{
+                                  shrink: true,
+                                }}
+                                InputProps={{
+                                  style: { fontSize: "12px", height: "35px" },
+                                }}
+                              />
+                            </Grid>
                           </Grid>
 
                           <Grid container spacing={2} mt={1}>
@@ -4451,11 +4442,7 @@ const TenderPurchase = () => {
                   const isEbuyBuyer = user.Buyer != null && String(user.Buyer) === String(ebuyAcCode);
                   const isEyeEnabled = isEbuyClickable && isEditing && isEbuyBuyer;
                   return (
-                    <TableRow
-                      key={user.id}
-                      title={user.Buy_Us === "Y" ? "Purchase from eBuySugar" : undefined}
-                      sx={user.Buy_Us === "Y" ? { backgroundColor: "#7dda86" } : undefined}
-                    >
+                    <TableRow key={user.id}>
                       <TableCell
                         sx={{
                           padding: "2px 4px",
@@ -4668,127 +4655,92 @@ const TenderPurchase = () => {
                 })}
               </TableBody>
             </Table>
+
+            {(shiftedOutData.length > 0 || receivedInData.length > 0) && (
+              <Grid container spacing={2} sx={{ mt: 2, mb: 2, marginbottom: "60px" }}>
+                {/* Shifted Out - left */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 0.5 }}>
+                    Shifted Out
+                  </Typography>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={headerCellStylelog}>Tender No</TableCell>
+                          <TableCell sx={headerCellStylelog}>Grade</TableCell>
+                          <TableCell sx={headerCellStylelog}>Quantity</TableCell>
+                          <TableCell sx={headerCellStylelog}>Sale Rate</TableCell>
+                          <TableCell sx={headerCellStylelog}>Payment To</TableCell>
+                          <TableCell sx={headerCellStylelog}>Shifted On</TableCell>
+                          <TableCell sx={headerCellStylelog}>Shifted By</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {shiftedOutData.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell>{row.Tender_No}</TableCell>
+                            <TableCell>{row.Grade}</TableCell>
+                            <TableCell >{formatReadableAmount(row.Quantity)}</TableCell>
+                            <TableCell>{row.Sale_Rate ?? "-"}</TableCell>
+                            <TableCell>{row.Payment_To}</TableCell>
+                            <TableCell>{[row.ShiftedOn, row.ShiftedTime].filter(Boolean).join(" ")}</TableCell>
+                            <TableCell>{row.ShiftedBy || "-"}</TableCell>
+                          </TableRow>
+                        ))}
+                        {shiftedOutData.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={7} align="center">No records</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Grid>
+
+                {/* Received In - right */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 0.5 }}>
+                    Received In
+                  </Typography>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={headerCellStylelog}>Tender No</TableCell>
+                          <TableCell sx={headerCellStylelog}>Grade</TableCell>
+                          <TableCell sx={headerCellStylelog}>Quantity</TableCell>
+                          <TableCell sx={headerCellStylelog}>Sale Rate</TableCell>
+                          <TableCell sx={headerCellStylelog}>Payment To</TableCell>
+                          <TableCell sx={headerCellStylelog}>Shifted On</TableCell>
+                          <TableCell sx={headerCellStylelog}>Shifted By</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {receivedInData.map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell>{row.Tender_No}</TableCell>
+                            <TableCell>{row.Grade}</TableCell>
+                            <TableCell >{formatReadableAmount(row.Quantity)}</TableCell>
+                            <TableCell>{row.Sale_Rate ?? "-"}</TableCell>
+                            <TableCell>{row.Payment_To}</TableCell>
+                            <TableCell>{[row.ShiftedOn, row.ShiftedTime].filter(Boolean).join(" ")}</TableCell>
+                            <TableCell>{row.ShiftedBy || "-"}</TableCell>
+                          </TableRow>
+                        ))}
+                        {receivedInData.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={7} align="center">No records</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Grid>
+              </Grid>
+            )}
           </TableContainer>
 
-          {(shiftRemarks.ShiftedOut.length > 0 || shiftRemarks.ReceivedIn.length > 0) && (
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "nowrap",
-                gap: 2,
-                mt: 2,
-                width: "100%",
-              }}
-            >
-              <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
-                <Box
-                  sx={{
-                    backgroundColor: "#b26a00",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "13px",
-                    padding: "6px 10px",
-                    borderRadius: "6px 6px 0 0",
-                  }}
-                >
-                  ↗ Shifting From This Tender To Another
-                </Box>
-                <TableContainer component={Paper} sx={{ borderRadius: "0 0 6px 6px", boxShadow: 2,marginBottom: "60px"}}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={remarkHeaderCellStyle}>Shift Date</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Tender No</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Tenderdetailid</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Grade</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Quintal</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Payment To</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {shiftRemarks.ShiftedOut.map((log, i) => (
-                        <TableRow
-                          key={log.id}
-                          sx={{
-                            backgroundColor: i % 2 ? "rgba(178, 106, 0, 0.04)" : "transparent",
-                            "&:hover": { backgroundColor: "rgba(178, 106, 0, 0.10)" },
-                          }}
-                        >
-                          <TableCell sx={remarkBodyCellStyle}>{log.ShiftedOn}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.Tender_No}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.tenderdetailid}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.Grade}</TableCell>
-                          <TableCell sx={{ ...remarkBodyCellStyle}}>{log.Quantity}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.Payment_To}</TableCell>
-                        </TableRow>
-                      ))}
-                      {shiftRemarks.ShiftedOut.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center" sx={{ fontSize: "12px", color: "text.secondary" }}>
-                            No records
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-
-              <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
-                <Box
-                  sx={{
-                    backgroundColor: "#2e7d32",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "13px",
-                    padding: "6px 10px",
-                    borderRadius: "6px 6px 0 0",
-                  }}
-                >
-                  ↙ Received From Another Tender
-                </Box>
-                <TableContainer component={Paper} sx={{ borderRadius: "0 0 6px 6px", boxShadow: 2 ,marginBottom: "60px"}}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={remarkHeaderCellStyle}>Shift Date</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Tender No</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Tenderdetailid</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Grade</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Quintal</TableCell>
-                        <TableCell sx={remarkHeaderCellStyle}>Payment To</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {shiftRemarks.ReceivedIn.map((log, i) => (
-                        <TableRow
-                          key={log.id}
-                          sx={{
-                            backgroundColor: i % 2 ? "rgba(46, 125, 50, 0.04)" : "transparent",
-                            "&:hover": { backgroundColor: "rgba(46, 125, 50, 0.10)" },
-                          }}
-                        >
-                          <TableCell sx={remarkBodyCellStyle}>{log.ShiftedOn}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.Tender_No}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.tenderdetailid}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.Grade}</TableCell>
-                          <TableCell sx={{ ...remarkBodyCellStyle }}>{log.Quantity}</TableCell>
-                          <TableCell sx={remarkBodyCellStyle}>{log.Payment_To}</TableCell>
-                        </TableRow>
-                      ))}
-                      {shiftRemarks.ReceivedIn.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center" sx={{ fontSize: "12px", color: "text.secondary" }}>
-                            No records
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-            </Box>
-          )}
         </div>
       </form>
 

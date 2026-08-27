@@ -436,6 +436,13 @@ def _get_company_parameters(company_code, year_code):
 _REMOVE_HEAD_KEYS_SET = frozenset(_REMOVE_HEAD_KEYS)
 
 
+def _to_int_or_none(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 @app.route(API_URL + "/insert-DeliveryOrder", methods=["POST"])
 async def insert_DeliveryOrder():
 
@@ -525,6 +532,9 @@ async def insert_DeliveryOrder():
 
         # ── FIX 3: dict comprehension + frozenset — replaces copy() + pop loop
         headData = {k: v for k, v in new_sale_data.items() if k not in _REMOVE_HEAD_KEYS_SET}
+        # Mirrored into nt_1_PendingDeliveryOrder.Third_Party_Do wherever this DO
+        # gets synced into that table below.
+        _bank_code = _to_int_or_none(detailData[0].get('Bank_Code')) if detailData else None
 
         # ─────────────────────────────────────────────────────────────────────
         # DUPLICATE CHECK 1 — PurchaseBill
@@ -657,12 +667,14 @@ async def insert_DeliveryOrder():
                     UPDATE dbo.nt_1_PendingDeliveryOrder
                     SET Approved = 'Y',
                         doid     = :doid,
-                        do_no    = :do_no
+                        do_no    = :do_no,
+                        Third_Party_Do = :third_party_do
                     WHERE pendingDoid = :pendingDoid
                 """),
                 {
                     'doid':       new_head.doid,
                     'do_no':      new_doc_no,
+                    'third_party_do': _bank_code,
                     'pendingDoid': int(_pending_doc_id),
                 }
             )
@@ -689,9 +701,10 @@ async def insert_DeliveryOrder():
                 ship_to_ac_code=new_head.voucher_by,
                 ship_to_accoid=new_head.vb,
                 mill_rate=new_head.mill_rate,
-                ebuy_user_id=new_head.CashDiffAc,
+                ebuy_user_id=new_head.broker,
                 quantal=new_head.quantal,
                 sale_rate=new_head.sale_rate,
+                third_party_do=_bank_code,
             )
 
         # ── FIX 1: lightweight company parameters — cached, single SELECT ─────
@@ -1541,10 +1554,12 @@ async def insert_DeliveryOrder():
             db.session.execute(
                 text("""
                     UPDATE dbo.nt_1_PendingDeliveryOrder
-                    SET Approved = 'Y'
+                    SET Approved = 'Y',
+                        Third_Party_Do = :third_party_do
                     WHERE pendingDoid = :pendingDoid
                 """),
                 {
+                    'third_party_do': _bank_code,
                     'pendingDoid': int(_pending_doc_id),
                 }
             )
@@ -1617,6 +1632,8 @@ async def update_DeliveryOrder():
         new_sale_data = data['headData']
         headData      = {k: v for k, v in new_sale_data.items() if k not in _REMOVE_HEAD_KEYS_SET}
         detailData    = data['detailData']
+        # Mirrored into nt_1_PendingDeliveryOrder.Third_Party_Do below.
+        _bank_code = _to_int_or_none(detailData[0].get('Bank_Code')) if detailData else None
 
         if not headData.get('tran_type'):
             return jsonify({"error": "tran_type is required"}), 400
@@ -2495,9 +2512,10 @@ async def update_DeliveryOrder():
             ship_to_ac_code=updated_head.voucher_by,
             ship_to_accoid=updated_head.vb,
             mill_rate=updated_head.mill_rate,
-            ebuy_user_id=updated_head.CashDiffAc,
+            ebuy_user_id=updated_head.broker,
             quantal=updated_head.quantal,
             sale_rate=updated_head.sale_rate,
+            third_party_do=_bank_code,
         )
 
         # ═════════════════════════════════════════════════════════════════════
@@ -2580,16 +2598,22 @@ def delete_data_by_doid():
                 sale_tds=do_head.SaleTDSRate, purchase_tds=do_head.PurchaseTDSRate,
             )
  
+            # Captured before the details get deleted below - mirrored into
+            # nt_1_PendingDeliveryOrder.Third_Party_Do in the same reset.
+            first_detail = DeliveryOrderDetail.query.filter_by(doid=doid).order_by(DeliveryOrderDetail.detail_Id).first()
+            bank_code = first_detail.Bank_Code if first_detail else None
+
             DeliveryOrderDetail.query.filter_by(doid=doid).delete()
- 
+
             # Reset linked PendingDeliveryOrder so it reappears as pending in eBuySugar
             db.session.execute(text('''
                 UPDATE nt_1_PendingDeliveryOrder
                 SET Approved = 'N',
                     doid     = NULL,
-                    do_no    = NULL
+                    do_no    = NULL,
+                    Third_Party_Do = :bank_code
                 WHERE doid = :doid
-            '''), {'doid': doid})
+            '''), {'doid': doid, 'bank_code': bank_code})
  
             result = db.session.execute(text('''
                 UPDATE nt_1_deliveryorder

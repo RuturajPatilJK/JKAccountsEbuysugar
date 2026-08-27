@@ -24,6 +24,7 @@ const SaudaBookUtility = () => {
   const yearCode = sessionStorage.getItem("Year_Code");
   const location = useLocation();
   const tenderData = location.state?.tenderData;
+
   const buyerRef = useRef();
   const navigate = useNavigate();
 
@@ -293,7 +294,7 @@ const handleInputChange = (e) => {
     try {
       const saleRate = parseFloat(formData.Sale_Rate) || 0;
 
-      if (saleRate > 0 && minRate > 0 && saleRate < minRate) {
+      if (minRate > 0 && saleRate < minRate) {
         await Swal.fire({
           title: "Sale Rate Validation Failed",
           html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
@@ -308,7 +309,7 @@ const handleInputChange = (e) => {
         return;
       }
 
-      if (saleRate > 0 && maxRate > 0 && saleRate > maxRate) {
+      if (maxRate > 0 && saleRate > maxRate) {
         await Swal.fire({
           title: "Sale Rate Validation Failed",
           html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">

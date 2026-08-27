@@ -1171,7 +1171,7 @@ const DeliveryOrder = () => {
     socket.on("delivery_order_updated", (data) => {
       console.log("Delivery Order Updated:", data);
       refreshPendingDOData();
-      if (data.doid && formData.doid && String(data.doid) === String(formData.doid)) {
+      if (data?.doid && formData.doid && String(data.doid) === String(formData.doid)) {
         toast.info("This delivery order was updated by another user.");
       }
     });
@@ -1179,7 +1179,7 @@ const DeliveryOrder = () => {
     socket.on("delivery_order_deleted", (data) => {
       console.log("Delivery Order Deleted:", data);
       refreshPendingDOData();
-      if (data.doid && formData.doid && String(data.doid) === String(formData.doid)) {
+      if (data?.doid && formData.doid && String(data.doid) === String(formData.doid)) {
         toast.warning("This delivery order was deleted by another user.");
       }
     });
@@ -1294,7 +1294,7 @@ const DeliveryOrder = () => {
         sb: details.last_details_data[0].buyerid,
         gp: details.last_details_data[0].Getpassnoid,
         ic: details.last_details_data[0].ic,
-        bk: details.last_details_data[0].brokerbk || details.last_details_data[0].buyerpartyid,
+        bk: details.last_details_data[0].buyerid,
         vb: details.last_details_data[0].buyerid,
         CashDiffAcId: details.last_details_data[0].buyerid,
         st: details.last_details_data[0].buyerid,
@@ -1309,7 +1309,7 @@ const DeliveryOrder = () => {
         DO: details.last_details_data[0].Tender_DO,
         itemcode: details.last_details_data[0].itemcode,
         GstRateCode: details.last_details_data[0].gstratecode,
-        broker: details.last_details_data[0].Broker || details.last_details_data[0].Buyer_Party,
+        broker: details.last_details_data[0].Buyer,
         SalebilltoGstStateCode: details.last_details_data[0].buyergststatecode,
         SaleBillByName: details.last_details_data[0].buyeridcitystate,
         VoucherbyGstStateCode: details.last_details_data[0].shiptostatecode,
@@ -1338,8 +1338,8 @@ const DeliveryOrder = () => {
       setGstRatecode(details.last_details_data[0].gstrate)
       setTenderDetails({
         ...details.last_details_data[0],
-        Buyer_Party: details.last_details_data[0].Broker || details.last_details_data[0].Buyer_Party,
-        buyerpartyname: details.last_details_data[0].brokername || details.last_details_data[0].buyerpartyname,
+        Buyer_Party: details.last_details_data[0].Buyer,
+        buyerpartyname: details.last_details_data[0].buyername,
       });
       setAutopurchase(details.last_details_data[0].AutoPurchaseBill);
       setbankcode()
@@ -1431,7 +1431,7 @@ const DeliveryOrder = () => {
     if (Carporate_Sale_No != 0) {
       voucherTitle = CarporateState.lblvoucherByname;
       salebillTitle = CarporateState.lblsalebilltoname;
-      brokerTitle = CarporateState.brokername;
+      brokerTitle = details.last_details_data[0].buyername;
       getpassTitle = CarporateState.getpassselfname;
       season = details.last_details_data[0].season
 
@@ -1461,6 +1461,8 @@ const DeliveryOrder = () => {
         mill_rate: details.last_details_data[0].MillRate || details.last_details_data[0].Mill_Rate,
         gradeCode: details.last_details_data[0].gradeCode,
         gradeid: details.last_details_data[0].gradeid,
+        broker: details.last_details_data[0].Buyer,
+        bk: details.last_details_data[0].buyerid,
       };
 
 
@@ -1496,7 +1498,7 @@ const DeliveryOrder = () => {
         sb: details.last_details_data[0].buyerid,
         gp: details.last_details_data[0].buyerid,
         ic: details.last_details_data[0].ic,
-        bk: details.last_details_data[0].brokerbk || details.last_details_data[0].buyerpartyid,
+        bk: details.last_details_data[0].buyerid,
         vb: details.last_details_data[0].buyerid,
         st: details.last_details_data[0].buyerid,
         CashDiffAcId: details.last_details_data[0].buyerid,
@@ -1510,7 +1512,7 @@ const DeliveryOrder = () => {
         DO: details.last_details_data[0].Tender_DO,
         itemcode: details.last_details_data[0].itemcode,
         GstRateCode: details.last_details_data[0].gstratecode,
-        broker: details.last_details_data[0].Broker || details.last_details_data[0].Buyer_Party,
+        broker: details.last_details_data[0].Buyer,
         SalebilltoGstStateCode: details.last_details_data[0].Buyer,
         VoucherbyGstStateCode: details.last_details_data[0].Buyer,
         GetpassGstStateCode: details.last_details_data[0].Buyer,
@@ -4225,18 +4227,18 @@ const DeliveryOrder = () => {
       }
       setShipToManuallySet(true);
       // Override tenderDetails — Sale Bill To, Shipped To, and Broker read from tenderDetails first
-      newbroker = "2";
-      lblbrokername = "Self";
+      newbroker = record.BillTo_Ac_Code || "2";
+      lblbrokername = record.BillTo_Name || "Self";
       brokerTitle = "";
-      setbrokercode("2");
-      setbrokercodeacid("2");
-      setbrokercodename("Self");
+      setbrokercode(record.BillTo_Ac_Code || "2");
+      setbrokercodeacid(record.BillTo_Accoid || "2");
+      setbrokercodename(record.BillTo_Name || "Self");
       setTenderDetails(prev => ({
         ...prev,
         Buyer: record.BillTo_Ac_Code || prev.Buyer,
         buyername: record.BillTo_Name || prev.buyername,
-        Buyer_Party: "2",
-        buyerpartyname: "Self",
+        Buyer_Party: record.BillTo_Ac_Code || "2",
+        buyerpartyname: record.BillTo_Name || "Self",
       }));
 
       // Quantal from pending DO's Lifting_Quintal; recalculate bags; set bill to/ship to in formData
@@ -4255,6 +4257,8 @@ const DeliveryOrder = () => {
           sb: record.BillTo_Accoid || prev.sb,
           voucher_by: record.ShipTo_Ac_Code || "",
           vb: record.ShipTo_Accoid || "",
+          broker: record.BillTo_Ac_Code || prev.broker,
+          bk: record.BillTo_Accoid || prev.bk,
           pendingDoid: record.pendingDoid,
           orderid: record.pendingDoid,
           ebuy_narration: record.Note || prev.ebuy_narration,
@@ -4315,18 +4319,18 @@ const DeliveryOrder = () => {
         setvoucherbycodename(rec.ShipTo_Name || "");
       }
       // Override tenderDetails — Sale Bill To, Shipped To, and Broker read from tenderDetails first
-      newbroker = "2";
-      lblbrokername = "Self";
+      newbroker = rec.BillTo_Ac_Code || "2";
+      lblbrokername = rec.BillTo_Name || "Self";
       brokerTitle = "";
-      setbrokercode("2");
-      setbrokercodeacid("2");
-      setbrokercodename("Self");
+      setbrokercode(rec.BillTo_Ac_Code || "2");
+      setbrokercodeacid(rec.BillTo_Accoid || "2");
+      setbrokercodename(rec.BillTo_Name || "Self");
       setTenderDetails(prev => ({
         ...prev,
         Buyer: rec.BillTo_Ac_Code || prev.Buyer,
         buyername: rec.BillTo_Name || prev.buyername,
-        Buyer_Party: "2",
-        buyerpartyname: "Self",
+        Buyer_Party: rec.BillTo_Ac_Code || "2",
+        buyerpartyname: rec.BillTo_Name || "Self",
       }));
 
       newtransport = "5005";
@@ -4348,6 +4352,8 @@ const DeliveryOrder = () => {
           sb: rec.BillTo_Accoid || prev.sb,
           voucher_by: rec.ShipTo_Ac_Code || prev.voucher_by,
           vb: rec.ShipTo_Accoid || prev.vb,
+          broker: rec.BillTo_Ac_Code || prev.broker,
+          bk: rec.BillTo_Accoid || prev.bk,
         };
       });
     } catch (error) {

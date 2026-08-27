@@ -21,16 +21,18 @@ def purcno():
         # Start a database transaction
         with db.session.begin_nested():
             query = db.session.execute(text('''
-               SELECT TOP (100) PERCENT dbo.qrytenderdobalanceview.Tender_No, dbo.qrytenderdobalanceview.Tender_DateConverted AS Tender_Date, dbo.qrytenderdobalanceview.buyername AS Party2, 
-                  dbo.qrytenderdobalanceview.buyerpartyname AS Party, dbo.qrytenderdobalanceview.Mill_Rate, ISNULL(CONVERT(NVARCHAR(200), dbo.qrytenderdobalanceview.Grade), N'') + CASE WHEN NULLIF (CONVERT(NVARCHAR(200), 
-                  dbo.nt_1_systemmaster.System_Name_E), N'') IS NULL THEN N'' ELSE N' - ' + CONVERT(NVARCHAR(200), dbo.nt_1_systemmaster.System_Name_E) END AS Grade, dbo.qrytenderdobalanceview.Sale_Rate, 
-                  dbo.qrytenderdobalanceview.Buyer_Quantal, dbo.qrytenderdobalanceview.DESPATCH, dbo.qrytenderdobalanceview.BALANCE, dbo.qrytenderdobalanceview.tenderdoname AS doname, 
-                  dbo.qrytenderdobalanceview.Lifting_DateConverted AS Lifting_Date, dbo.qrytenderdobalanceview.ID, dbo.qrytenderdobalanceview.tenderdetailid, dbo.qrytenderdobalanceview.tenderid, dbo.qrytenderdobalanceview.Delivery_Type, 
-                  dbo.qrytenderdobalanceview.shiptoname, dbo.qrytenderdobalanceview.tenderdoshortname, dbo.qrytenderdobalanceview.season, ISNULL(dbo.qrytenderdobalanceview.Purchase_Rate,dbo.qrytenderdobalanceview.Party_Bill_Rate) as Party_Bill_Rate, dbo.qrytenderdobalanceview.gradeid, 
-                  dbo.qrytenderdobalanceview.gradeCode, CASE WHEN dbo.qrytenderdobalanceview.MillRate = 0 THEN mill_rate ELSE millrate END AS MillRate, dbo.qrytenderdobalanceview.Buyer_Party, dbo.qrytenderdobalanceview.buyerpartyid, 
-                         dbo.qrytenderdobalanceview.Sauda_Date, dbo.qrytenderdobalanceview.Lifting_Date AS PaymentDate, dbo.qrytenderdobalanceview.Sauda_Lifting_Date
-FROM     dbo.qrytenderdobalanceview LEFT OUTER JOIN
-                  dbo.nt_1_systemmaster ON dbo.qrytenderdobalanceview.gradeid = dbo.nt_1_systemmaster.systemid
+           SELECT  dbo.qrytenderdobalanceview.Tender_No, dbo.qrytenderdobalanceview.Tender_DateConverted AS Tender_Date, dbo.qrytenderdobalanceview.buyername AS Party2, 
+                         dbo.qrytenderdobalanceview.buyerpartyname AS Party, dbo.qrytenderdobalanceview.Mill_Rate, ISNULL(CONVERT(NVARCHAR(200), dbo.qrytenderdobalanceview.Grade), N'') + CASE WHEN NULLIF (CONVERT(NVARCHAR(200), 
+                         dbo.nt_1_systemmaster.System_Name_E), N'') IS NULL THEN N'' ELSE N' - ' + CONVERT(NVARCHAR(200), dbo.nt_1_systemmaster.System_Name_E) END AS Grade, dbo.qrytenderdobalanceview.Sale_Rate, 
+                         dbo.qrytenderdobalanceview.Buyer_Quantal, dbo.qrytenderdobalanceview.DESPATCH, dbo.qrytenderdobalanceview.BALANCE, dbo.qrytenderdobalanceview.tenderdoname AS doname, 
+                         dbo.qrytenderdobalanceview.Lifting_DateConverted AS Lifting_Date, dbo.qrytenderdobalanceview.ID, dbo.qrytenderdobalanceview.tenderdetailid, dbo.qrytenderdobalanceview.tenderid, 
+                         dbo.qrytenderdobalanceview.Delivery_Type, dbo.qrytenderdobalanceview.shiptoname, dbo.qrytenderdobalanceview.tenderdoshortname, dbo.qrytenderdobalanceview.season, 
+                         ISNULL(dbo.qrytenderdobalanceview.Purchase_Rate, dbo.qrytenderdobalanceview.Party_Bill_Rate) AS Party_Bill_Rate, dbo.qrytenderdobalanceview.gradeid, dbo.qrytenderdobalanceview.gradeCode, 
+                         CASE WHEN dbo.qrytenderdobalanceview.MillRate = 0 THEN mill_rate ELSE millrate END AS MillRate, dbo.qrytenderdobalanceview.Buyer_Party, dbo.qrytenderdobalanceview.buyerpartyid, 
+                         dbo.qrytenderdobalanceview.Sauda_Date, dbo.qrytenderdobalanceview.Lifting_Date AS PaymentDate, dbo.qrytenderdobalanceview.Sauda_Lifting_Date, dbo.qrytenderdobalanceview.buyerid, 
+                         dbo.qrytenderdobalanceview.Buyer
+FROM            dbo.qrytenderdobalanceview LEFT OUTER JOIN
+                         dbo.nt_1_systemmaster ON dbo.qrytenderdobalanceview.gradeid = dbo.nt_1_systemmaster.systemid
 WHERE  (dbo.qrytenderdobalanceview.BALANCE <> 0) AND (dbo.qrytenderdobalanceview.Company_Code = :CompanyCode) AND (dbo.qrytenderdobalanceview.Mill_Code = :MillCode)
 ORDER BY dbo.qrytenderdobalanceview.Tender_No DESC
             '''),{'CompanyCode':CompanyCode, 'MillCode':MillCode})
@@ -67,8 +69,9 @@ ORDER BY dbo.qrytenderdobalanceview.Tender_No DESC
                 'buyerpartyid': row.buyerpartyid,
                 'Sauda_Date': row.Sauda_Date,
                 'PaymentDate': row.PaymentDate,
-                'Sauda_Lifting_Date': row.Sauda_Lifting_Date
-
+                'Sauda_Lifting_Date': row.Sauda_Lifting_Date,
+                'buyerid': row.buyerid,
+                'Buyer': row.Buyer
             })
 
         return jsonify(response)

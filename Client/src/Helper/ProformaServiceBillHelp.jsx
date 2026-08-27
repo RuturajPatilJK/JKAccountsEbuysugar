@@ -29,7 +29,6 @@ const ProformaServiceBillhelp = ({ onAcCodeClick, name, ProformaServicebillno, P
         try {
             const response = await axios.get(`${API_URL}/ProformaServiceBill?Company_Code=${CompanyCode}&Customer_Code=${Customer_Code}`);
             const data = response.data;
-            console.log("fetchAndOpenPopup", data)
             const filteredData = data.filter(item =>
                 (item.Ac_Name_E ? item.Ac_Name_E.toLowerCase().includes(searchTerm.toLowerCase()) : false)
                 // (item.MillName ? item.MillName.toLowerCase().includes(searchTerm.toLowerCase()) : false)
@@ -80,7 +79,6 @@ const ProformaServiceBillhelp = ({ onAcCodeClick, name, ProformaServicebillno, P
         try {
             const response = await axios.get(`${API_URL}/ProformaServiceBill?Company_Code=${CompanyCode}&Customer_Code=${Customer_Code}`);
             const data = response.data;
-            console.log("Data", data)
             setPopupContent(data);
             setApiDataFetched(true);
             const matchingItem = data.find((item) => item.Doc_No === parseInt(value, 10));
@@ -124,7 +122,6 @@ const ProformaServiceBillhelp = ({ onAcCodeClick, name, ProformaServicebillno, P
                 onAcCodeClick(item.Doc_No,item.rbid);
             } 
             // onFetchedData(item);
-            console.log("handleRecordDoubleClick",item.Proformaid,item.rbid)
         }
         setShowModal(false);
     };
@@ -143,8 +140,6 @@ const ProformaServiceBillhelp = ({ onAcCodeClick, name, ProformaServicebillno, P
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const itemsToDisplay = filteredData.slice(startIndex, endIndex);
-
-        console.log('item', itemsToDisplay)
 
         useEffect(() => {
             if (ProformaServicebillno === "" || Proformaid === "") {
@@ -198,7 +193,6 @@ const ProformaServiceBillhelp = ({ onAcCodeClick, name, ProformaServicebillno, P
             };
         }, [showModal, selectedRowIndex, itemsToDisplay, handleRecordDoubleClick]);
 
-        console.log('PopUp Content', popupContent)
 
         return (
             <div className="d-flex flex-row ">

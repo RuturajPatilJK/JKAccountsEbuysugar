@@ -36,7 +36,6 @@ const PdfPreview_JK = ({ pdfData, apiData, label }) => {
     fd.append('query_label', options.label);
     const r = await fetch(`${apiKey}/send-pdf-email`, { method: 'POST', body: fd });
     const d = await r.json();
-    console.log('Email sent:', d.message);
   };
 
   /* ─── send WhatsApp ─── */
@@ -102,7 +101,6 @@ const PdfPreview_JK = ({ pdfData, apiData, label }) => {
       });
       const result = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(`Send failed (${r.status}): ${JSON.stringify(result)}`);
-      console.log(`Sent to ${msisdn}:`, result);
       await new Promise(res => setTimeout(res, 2000));
     }
   };

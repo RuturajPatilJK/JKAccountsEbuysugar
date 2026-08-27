@@ -57,7 +57,6 @@ export const useRecordLocking = (recordId, tran_type, company_code, year_code, m
                 .then(() => {
                     setIsRecordLockedByUser(false);
                     sessionStorage.removeItem(storageKey);
-                    console.log("Lock removed from sessionStorage");
                 })
                 .catch((error) => {
                     console.error("Error unlocking record:", error);
