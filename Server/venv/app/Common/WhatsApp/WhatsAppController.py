@@ -11,8 +11,9 @@ from app import app
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 API_URL        = os.getenv("API_URL", "/api/sugarian")
-D360_API_KEY   = os.getenv("D360_API_KEY")   
+D360_API_KEY   = os.getenv("D360_API_KEY")
 D360_BASE_URL  = "https://waba-v2.360dialog.io"
+D360_API_URL   = os.getenv("D360_API_URL")
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")
 
 # ─── CORS helper ──────────────────────────────────────────────────────────────
@@ -44,9 +45,10 @@ def upload_to_whatsapp_media():
 
     try:
         resp = requests.post(
-            f"{D360_BASE_URL}/media",
+            D360_API_URL,
             headers={
-                "D360-API-KEY": D360_API_KEY,
+                "API-KEY": f"Bearer {D360_API_KEY}",
+                "MM_lite": "yes",
                 # NOTE: Do NOT add Content-Type here — requests sets it
                 #       automatically with the correct multipart boundary.
             },
@@ -111,19 +113,20 @@ def send_whatsapp():
 
     try:
         resp = requests.post(
-            f"{D360_BASE_URL}/messages",
+            D360_API_URL,
             headers={
-                "D360-API-KEY":  D360_API_KEY,
+                "API-KEY":       f"Bearer {D360_API_KEY}",
+                "MM_lite":       "yes",
                 "Content-Type":  "application/json",
             },
             data=json.dumps(payload),
             timeout=20,
         )
     except requests.RequestException as exc:
-        app.logger.error(f"360dialog send network error: {exc}")
+        app.logger.error(f"WhatsApp send network error: {exc}")
         return _corsify(make_response(jsonify(error=f"Network error: {exc}"), 502))
 
-    app.logger.info(f"360dialog send → {resp.status_code}: {resp.text}")
+    app.logger.info(f"WhatsApp send → {resp.status_code}: {resp.text}")
 
     try:
         body = resp.json()

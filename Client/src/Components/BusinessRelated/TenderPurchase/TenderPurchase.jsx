@@ -299,6 +299,7 @@ const TenderPurchase = () => {
     Sauda_Date: new Date().toISOString().split("T")[0],
     Lifting_Date: formData?.Lifting_Date || "",
     Sauda_Lifting_Date: "",
+    Sauda_Type: "F",
     Narration: "",
     tcs_rate: 0.0,
     gst_rate: 0.0,
@@ -1384,6 +1385,7 @@ const TenderPurchase = () => {
         Lifting_Date:
           index === 0 ? formData.Lifting_Date : user.Lifting_Date || "",
         Sauda_Lifting_Date: user.Sauda_Lifting_Date || "",
+        Sauda_Type: user.Sauda_Type || "F",
         Narration: user.Narration || "",
         ID: user.id,
         ShipTo: user.ShipTo || 0,
@@ -2268,6 +2270,7 @@ const TenderPurchase = () => {
       Sauda_Date: user.Sauda_Date || 0.0,
       Lifting_Date: user.Lifting_Date || 0.0,
       Sauda_Lifting_Date: user.Sauda_Lifting_Date || "",
+      Sauda_Type: user.Sauda_Type || "F",
       Narration: user.Narration || 0.0,
       tcs_rate: user.tcs_rate || 0.0,
       gst_rate: user.gst_rate || 0.0,
@@ -2309,6 +2312,7 @@ const TenderPurchase = () => {
           Sale_Rate: detail.Sale_Rate,
           Sauda_Date: detail.Sauda_Date,
           Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
+          Sauda_Type: detail.Sauda_Type,
           gst_amt: detail.gst_amt,
           gst_rate: detail.gst_rate,
           //loding_by_us: detail.loding_by_us,
@@ -2355,6 +2359,7 @@ const TenderPurchase = () => {
       Sale_Rate: detail.Sale_Rate,
       Sauda_Date: detail.Sauda_Date,
       Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
+      Sauda_Type: detail.Sauda_Type,
       gst_amt: detail.gst_amt,
       gst_rate: detail.gst_rate,
       //loding_by_us: detail.loding_by_us,
@@ -2596,6 +2601,7 @@ const TenderPurchase = () => {
             Sale_Rate: detail.Sale_Rate,
             Sauda_Date: detail.Sauda_Date,
           Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
+          Sauda_Type: detail.Sauda_Type,
             gst_amt: detail.gst_amt,
             gst_rate: detail.gst_rate,
             //loding_by_us: detail.loding_by_us,
@@ -4258,6 +4264,28 @@ const TenderPurchase = () => {
                                   style: { fontSize: "12px", height: "35px" },
                                 }}
                               />
+                            </Grid>
+
+                            <Grid item xs={12} sm={2}>
+                              <TextField
+                                select
+                                label="Sauda Type"
+                                size="small"
+                                fullWidth
+                                name="Sauda_Type"
+                                value={formDataDetail.Sauda_Type}
+                                onChange={handleChangeDetail}
+                                disabled={!isEditing && addOneButtonEnabled}
+                                InputLabelProps={{
+                                  shrink: true,
+                                }}
+                                InputProps={{
+                                  style: { fontSize: "12px", height: "35px" },
+                                }}
+                              >
+                                <MenuItem value="F">Flexible</MenuItem>
+                                <MenuItem value="X">Fix</MenuItem>
+                              </TextField>
                             </Grid>
                           </Grid>
 

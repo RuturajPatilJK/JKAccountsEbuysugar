@@ -48,6 +48,7 @@ const today = new Date().toISOString().split("T")[0];
     Sauda_Date: today,
     Lifting_Date: today,
     Sauda_Lifting_Date: today,
+    Sauda_Type: "F",
     Narration: "",
     tcs_rate: 0.0,
     gst_rate: 5.0,
@@ -722,6 +723,16 @@ const handleInputChange = (e) => {
                 <TextField type="date" size="small" fullWidth name="Lifting_Date" label="Payment Date" value={formData.Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
                 <TextField type="date" size="small" fullWidth name="Sauda_Lifting_Date" label="Sauda Lifting Date" value={formData.Sauda_Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
               </Box>
+            </Grid>
+
+            <Grid item xs={12} sm={4} display="flex" alignItems="center">
+              <Typography fontWeight="bold">Sauda Type :</Typography>
+            </Grid>
+            <Grid item xs={12} sm={8}>
+              <TextField select size="small" fullWidth name="Sauda_Type" value={formData.Sauda_Type} onChange={handleInputChange}>
+                <MenuItem value="F">Flexible</MenuItem>
+                <MenuItem value="X">Fix</MenuItem>
+              </TextField>
             </Grid>
 
             <Grid item xs={12} sm={4} display="flex" alignItems="center">

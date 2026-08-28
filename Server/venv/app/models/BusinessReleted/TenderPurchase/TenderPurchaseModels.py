@@ -125,6 +125,7 @@ class TenderDetails(db.Model):
     Buy_Us = db.Column(db.String(1), nullable=True, default='N')
     New_Tender_No = db.Column(db.Integer, nullable=True)
     Sauda_Lifting_Date = db.Column(db.Date, nullable=True)
+    Sauda_Type = db.Column(db.String(1), nullable=True)
 
 
 class TenderGradeDetails(db.Model):

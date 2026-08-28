@@ -121,14 +121,14 @@ const SaudaBookUtilityPage = () => {
           <BackButton onClick={handleBack} />
         </Box>
         {/* Left: Self Stock */}
-        <Typography
+        {/* <Typography
           variant="subtitle1"
           fontWeight="bold"
           color="green"
           sx={{ whiteSpace: 'nowrap', minWidth: '160px' }}
         >
           Self Stock: {totalBuyerQuantal.toFixed(2)}
-        </Typography>
+        </Typography> */}
 
         {/* Center: Title */}
         <Box flex={1} display="flex" justifyContent="center">
