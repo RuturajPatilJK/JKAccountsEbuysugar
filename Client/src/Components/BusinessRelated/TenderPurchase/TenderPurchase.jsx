@@ -267,6 +267,9 @@ const TenderPurchase = () => {
   const [formData, setFormData] = useState(initialFormData);
 
   const [isLoading, setIsLoading] = useState(false);
+  // "Ex Mill" = the preset value gets saved as-is, comment box hidden.
+  // "Ex" = reveals a comment box; whatever the user types is saved instead.
+  const [exMillSelection, setExMillSelection] = useState("Ex Mill");
   const [paymentToManuallySet, setPaymentToManuallySet] = useState(false);
   const [voucherByManuallySet, setVoucherByManuallySet] = useState(false);
   const [tenderDOManuallySet, setTenderDOManuallySet] = useState(false);
@@ -300,6 +303,7 @@ const TenderPurchase = () => {
     Lifting_Date: formData?.Lifting_Date || "",
     Sauda_Lifting_Date: "",
     Sauda_Type: "F",
+    Ex_Mill_Type: "Ex Mill",
     Narration: "",
     tcs_rate: 0.0,
     gst_rate: 0.0,
@@ -1097,6 +1101,15 @@ const TenderPurchase = () => {
     }));
   };
 
+  const handleExMillSelectionChange = (e) => {
+    const value = e.target.value;
+    setExMillSelection(value);
+    setFormDataDetail((prev) => ({
+      ...prev,
+      Ex_Mill_Type: value === "Ex Mill" ? "Ex Mill" : "",
+    }));
+  };
+
   const handleCheckbox = (e, valueType = "string") => {
     const { name, checked } = e.target;
     const value =
@@ -1386,6 +1399,7 @@ const TenderPurchase = () => {
           index === 0 ? formData.Lifting_Date : user.Lifting_Date || "",
         Sauda_Lifting_Date: user.Sauda_Lifting_Date || "",
         Sauda_Type: user.Sauda_Type || "F",
+        Ex_Mill_Type: user.Ex_Mill_Type || "Ex Mill",
         Narration: user.Narration || "",
         ID: user.id,
         ShipTo: user.ShipTo || 0,
@@ -2198,12 +2212,16 @@ const TenderPurchase = () => {
   };
 
   const clearForm = () => {
+    setExMillSelection("Ex Mill");
     setFormDataDetail({
       Buyer_Quantal: "",
       Sale_Rate: 0.0,
       Commission_Rate: 0.0,
       Sauda_Date: new Date().toISOString().split("T")[0],
       Lifting_Date: formData.Lifting_Date,
+      Sauda_Lifting_Date: "",
+      Sauda_Type: "F",
+      Ex_Mill_Type: "Ex Mill",
       Narration: "",
       tcs_rate: 0.0,
       gst_rate: 0.0,
@@ -2263,6 +2281,10 @@ const TenderPurchase = () => {
     setBuyerPartyAccoid(user.buyerPartyAccoid);
     setShipToAccoid(user.shipToAccoid);
     setSubBrokerAccoid(user.subBrokerAccoid);
+    // Reflect the loaded row's actual Ex_Mill_Type in the dropdown - not
+    // exclusively "Ex Mill", the comment box stays hidden and the saved
+    // custom text becomes invisible even though formDataDetail still holds it.
+    setExMillSelection(user.Ex_Mill_Type && user.Ex_Mill_Type !== "Ex Mill" ? "Ex" : "Ex Mill");
     setFormDataDetail({
       Buyer_Quantal: user.Buyer_Quantal || 0.0,
       Sale_Rate: user.Sale_Rate || 0.0,
@@ -2271,6 +2293,7 @@ const TenderPurchase = () => {
       Lifting_Date: user.Lifting_Date || 0.0,
       Sauda_Lifting_Date: user.Sauda_Lifting_Date || "",
       Sauda_Type: user.Sauda_Type || "F",
+      Ex_Mill_Type: user.Ex_Mill_Type || "Ex Mill",
       Narration: user.Narration || 0.0,
       tcs_rate: user.tcs_rate || 0.0,
       gst_rate: user.gst_rate || 0.0,
@@ -2313,6 +2336,7 @@ const TenderPurchase = () => {
           Sauda_Date: detail.Sauda_Date,
           Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
           Sauda_Type: detail.Sauda_Type,
+          Ex_Mill_Type: detail.Ex_Mill_Type,
           gst_amt: detail.gst_amt,
           gst_rate: detail.gst_rate,
           //loding_by_us: detail.loding_by_us,
@@ -2360,6 +2384,7 @@ const TenderPurchase = () => {
       Sauda_Date: detail.Sauda_Date,
       Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
       Sauda_Type: detail.Sauda_Type,
+      Ex_Mill_Type: detail.Ex_Mill_Type,
       gst_amt: detail.gst_amt,
       gst_rate: detail.gst_rate,
       //loding_by_us: detail.loding_by_us,
@@ -2602,6 +2627,7 @@ const TenderPurchase = () => {
             Sauda_Date: detail.Sauda_Date,
           Sauda_Lifting_Date: detail.Sauda_Lifting_Date,
           Sauda_Type: detail.Sauda_Type,
+          Ex_Mill_Type: detail.Ex_Mill_Type,
             gst_amt: detail.gst_amt,
             gst_rate: detail.gst_rate,
             //loding_by_us: detail.loding_by_us,
@@ -3741,13 +3767,16 @@ const TenderPurchase = () => {
             component={Paper}
             sx={{
               width: "50%",
-              maxWidth: 400,
+              maxWidth: 500,
               ml: -160,
               marginTop: -15,
+              maxHeight: 480,
+              overflowY: "auto",
             }}
           >
             <Table
               size="small"
+              stickyHeader
               sx={{
                 tableLayout: "auto",
                 "& .MuiTableRow-root": { height: 28 },
@@ -3846,7 +3875,7 @@ const TenderPurchase = () => {
 
         <Box
           sx={{
-            mt: 20,
+            mt: 2,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -4287,6 +4316,42 @@ const TenderPurchase = () => {
                                 <MenuItem value="X">Fix</MenuItem>
                               </TextField>
                             </Grid>
+
+                            <Grid item xs={12} sm={2}>
+                              <TextField
+                                select
+                                label="Delivery From"
+                                size="small"
+                                fullWidth
+                                value={exMillSelection}
+                                onChange={handleExMillSelectionChange}
+                                disabled={!isEditing && addOneButtonEnabled}
+                                InputLabelProps={{
+                                  shrink: true,
+                                }}
+                                InputProps={{
+                                  style: { fontSize: "12px", height: "35px" },
+                                }}
+                              >
+                                <MenuItem value="Ex Mill">Ex Mill</MenuItem>
+                                <MenuItem value="Ex">Ex</MenuItem>
+                              </TextField>
+                              {exMillSelection === "Ex" && (
+                                <TextField
+                                  size="small"
+                                  fullWidth
+                                  sx={{ mt: 1 }}
+                                  placeholder="Please add Delivery From."
+                                  name="Ex_Mill_Type"
+                                  value={formDataDetail.Ex_Mill_Type}
+                                  onChange={handleChangeDetail}
+                                  disabled={!isEditing && addOneButtonEnabled}
+                                  InputProps={{
+                                    style: { fontSize: "12px", height: "35px" },
+                                  }}
+                                />
+                              )}
+                            </Grid>
                           </Grid>
 
                           <Grid container spacing={2} mt={1}>
@@ -4438,7 +4503,6 @@ const TenderPurchase = () => {
               </div>
             </div>
           )}
-          <br></br>
           <TableContainer component={Paper} sx={{ marginBottom: "60px" }}>
             <Table>
               <TableHead>

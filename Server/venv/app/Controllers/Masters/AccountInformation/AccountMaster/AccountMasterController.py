@@ -25,6 +25,7 @@ import requests as http_requests
 # Get the base URL from environment variables
 API_URL = os.getenv('API_URL')
 API_URL_SERVER = os.getenv('API_URL_SERVER')
+INTERNAL_API_KEY = os.getenv('INTERNAL_API_KEY')
 
 
 # Define schemas
@@ -766,7 +767,11 @@ def delete_accountmaster():
             _trading_url = os.getenv('TRADING_API_URL', '').rstrip('/')
             if _trading_url:
                 try:
-                    requests.delete(f"{_trading_url}/internal/mill-logo/{doc_no}", timeout=5)
+                    requests.delete(
+                        f"{_trading_url}/internal/mill-logo/{doc_no}",
+                        headers={'X-Internal-Api-Key': INTERNAL_API_KEY},
+                        timeout=5,
+                    )
                 except Exception:
                     pass
 
@@ -1280,7 +1285,11 @@ def upload_accountmaster_logo():
                 requests.post(
                     f"{_trading_url}/internal/mill-logo/{ac_code}",
                     data=_f.read(),
-                    headers={'Content-Type': f'image/{ext}', 'X-File-Ext': ext},
+                    headers={
+                        'Content-Type': f'image/{ext}',
+                        'X-File-Ext': ext,
+                        'X-Internal-Api-Key': INTERNAL_API_KEY,
+                    },
                     timeout=5,
                 )
         except Exception:

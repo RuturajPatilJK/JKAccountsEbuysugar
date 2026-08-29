@@ -70,7 +70,7 @@ TASK_DETAILS_QUERY = '''
                   dbo.qrytenderdetail.ShipToname, dbo.qrytenderdetail.buyershortname, dbo.qrytenderdetail.buyerpartymobno, dbo.qrytenderdetail.ebuyid, ISNULL(SUM(dbo.nt_1_deliveryorder.quantal), 0) AS despatched,
                   ISNULL(dbo.qrytenderdetail.Buyer_Quantal - ISNULL(SUM(dbo.nt_1_deliveryorder.quantal), 0), 0) AS balance, dbo.qrytenderdetail.gradeid, dbo.qrytenderdetail.gradeCode, dbo.nt_1_tenderGradeDetails.gradeRate,
                   gradeDetails.System_Name_E AS detailGradeName, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate as detailPurchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate,
-                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No, dbo.nt_1_tenderdetails.Sauda_Lifting_Date, dbo.nt_1_tenderdetails.Sauda_Type
+                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No, dbo.nt_1_tenderdetails.Sauda_Lifting_Date, dbo.nt_1_tenderdetails.Sauda_Type, dbo.nt_1_tenderdetails.Ex_Mill_Type
 FROM     dbo.nt_1_tenderGradeDetails RIGHT OUTER JOIN
                   dbo.qrytenderdetail ON dbo.nt_1_tenderGradeDetails.tenderid = dbo.qrytenderdetail.tenderid AND dbo.nt_1_tenderGradeDetails.gradeid = dbo.qrytenderdetail.gradeid LEFT OUTER JOIN
                   dbo.nt_1_systemmaster AS gradeDetails ON dbo.nt_1_tenderGradeDetails.gradeid = gradeDetails.systemid LEFT OUTER JOIN
@@ -98,7 +98,7 @@ GROUP BY Mill.Ac_Name_E, dbo.nt_1_tender.Mill_Code, dbo.nt_1_tender.mc, dbo.nt_1
                   dbo.qrytenderdetail.subbrokercityname, dbo.qrytenderdetail.tcs_rate, dbo.qrytenderdetail.gst_rate, dbo.qrytenderdetail.tcs_amt, dbo.qrytenderdetail.gst_amt, dbo.qrytenderdetail.ShipTo, dbo.qrytenderdetail.CashDiff, 
                   dbo.qrytenderdetail.shiptoid, dbo.qrytenderdetail.ShipToname, dbo.qrytenderdetail.buyershortname, dbo.qrytenderdetail.buyerpartymobno, dbo.qrytenderdetail.ebuyid, dbo.qrytenderdetail.gradeid, dbo.qrytenderdetail.gradeCode,
                   dbo.nt_1_tenderGradeDetails.gradeRate, dbo.nt_1_tenderGradeDetails.gradeid, dbo.nt_1_tenderGradeDetails.gradeCode, gradeDetails.System_Name_E, dbo.qrytenderdetail.Mill_Rate,dbo.qrytenderdetail.Purchase_Rate, dbo.nt_1_tenderGradeDetails.Purchase_Rate,
-                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No, dbo.nt_1_tenderdetails.Sauda_Lifting_Date, dbo.nt_1_tenderdetails.Sauda_Type
+                  dbo.qrytenderdetail.Buy_Us, dbo.qrytenderdetail.New_Tender_No, dbo.nt_1_tenderdetails.Sauda_Lifting_Date, dbo.nt_1_tenderdetails.Sauda_Type, dbo.nt_1_tenderdetails.Ex_Mill_Type
 ORDER BY dbo.qrytenderdetail.ID
 '''
 

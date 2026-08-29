@@ -49,6 +49,7 @@ const today = new Date().toISOString().split("T")[0];
     Lifting_Date: today,
     Sauda_Lifting_Date: today,
     Sauda_Type: "F",
+    Ex_Mill_Type: "Ex Mill",
     Narration: "",
     tcs_rate: 0.0,
     gst_rate: 5.0,
@@ -88,6 +89,9 @@ const today = new Date().toISOString().split("T")[0];
   const [minRate, setMinRate] = useState(0);
   const [maxRate, setMaxRate] = useState(0);
   const [tenderBalance, setTenderBalance] = useState(null);
+  // "Ex Mill" = the preset value gets saved as-is, comment box hidden.
+  // "Ex" = reveals a comment box; whatever the user types is saved instead.
+  const [exMillSelection, setExMillSelection] = useState("Ex Mill");
 
   // Unified logic to handle initialization from tenderData
   useEffect(() => {
@@ -145,6 +149,15 @@ const today = new Date().toISOString().split("T")[0];
 const handleInputChange = (e) => {
   const { name, value } = e.target;
   setFormData((prev) => ({ ...prev, [name]: value }));
+};
+
+const handleExMillSelectionChange = (e) => {
+  const value = e.target.value;
+  setExMillSelection(value);
+  setFormData((prev) => ({
+    ...prev,
+    Ex_Mill_Type: value === "Ex Mill" ? "Ex Mill" : "",
+  }));
 };
 
   const handleMillCode = (code, accoid, name) => {
@@ -528,6 +541,7 @@ const handleInputChange = (e) => {
     setShipToName("");
     setBrokerName("");
     setSubBrokerName("");
+    setExMillSelection("Ex Mill");
     setShouldFocusBuyer(true);
 };
 
@@ -731,8 +745,29 @@ const handleInputChange = (e) => {
             <Grid item xs={12} sm={8}>
               <TextField select size="small" fullWidth name="Sauda_Type" value={formData.Sauda_Type} onChange={handleInputChange}>
                 <MenuItem value="F">Flexible</MenuItem>
-                <MenuItem value="X">Fix</MenuItem>
+                <MenuItem value="X">Sold Full Quantity</MenuItem>
               </TextField>
+            </Grid>
+
+            <Grid item xs={12} sm={4} display="flex" alignItems="center">
+              <Typography fontWeight="bold">Delivery From :</Typography>
+            </Grid>
+            <Grid item xs={12} sm={8}>
+              <TextField select size="small" fullWidth value={exMillSelection} onChange={handleExMillSelectionChange}>
+                <MenuItem value="Ex Mill">Ex Mill</MenuItem>
+                <MenuItem value="Ex">Ex</MenuItem>
+              </TextField>
+              {exMillSelection === "Ex" && (
+                <TextField
+                  size="small"
+                  fullWidth
+                  sx={{ mt: 1 }}
+                  placeholder="Please add Delivery From."
+                  name="Ex_Mill_Type"
+                  value={formData.Ex_Mill_Type}
+                  onChange={handleInputChange}
+                />
+              )}
             </Grid>
 
             <Grid item xs={12} sm={4} display="flex" alignItems="center">

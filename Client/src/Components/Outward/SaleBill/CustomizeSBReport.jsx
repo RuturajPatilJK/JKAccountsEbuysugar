@@ -20,7 +20,7 @@ import { formatReadableAmount } from "../../../Common/FormatFunctions/FormatAmou
 
 const API_URL = process.env.REACT_APP_API;
 
-const CustomizeSBReport = ({ doc_no,tran_type, disabledFeild }) => {
+const CustomizeSBReport = ({ doc_no, tran_type, disabledFeild }) => {
   const companyCode = sessionStorage.getItem("Company_Code");
   const Year_Code = sessionStorage.getItem("Year_Code");
   const [invoiceData, setInvoiceData] = useState([]);
@@ -86,7 +86,7 @@ const CustomizeSBReport = ({ doc_no,tran_type, disabledFeild }) => {
 
     const displayCompanyName =
       docDate < cnameUpdatedDate
-        ? newCompanyName 
+        ? newCompanyName
         : allData.Company_Name_E;
 
 
@@ -122,41 +122,41 @@ const CustomizeSBReport = ({ doc_no,tran_type, disabledFeild }) => {
     logoImg.src = logoToUse;
     logoImg.onload = async () => {
 
-const shouldUseImage =
-  docDate >= cnameUpdatedDate
+      const shouldUseImage =
+        docDate >= cnameUpdatedDate
 
-    //   pdf.addImage(logoImg, "PNG", 10, 9, 30, 30);
-    //   pdf.setFont("Signika-Bold");
-    //   pdf.setFontSize(14);
-    //   pdf.text(displayCompanyName, 45, 14);
-    //   pdf.setFont("Signika-Regular");
-    //   pdf.setFontSize(9);
-    // pdf.setFont("Signika-Regular"); 
-    //   pdf.setFontSize(9);
-    //   pdf.text(`${foormerlyName}`, 45, 18);
-    //   pdf.text(`${allData.AL2}`, 45, 22);
-    //   pdf.text(`${allData.AL3}`, 45, 26);
-    //   pdf.text(`${allData.AL4}`, 45, 30);
-    //   pdf.text(`${allData.Other}`, 45, 34);
-    //   pdf.text(`${allData.BillFooter}`,45,38)
-    if (shouldUseImage) {
-    // Use header image across top (new template)
-    pdf.addImage(headerImg, "PNG", 0, 6, 180, 34); // full width
-  } else {
-    // Old layout: logo + company name + address lines
-    pdf.addImage(logoImg, "PNG", 10, 9, 30, 30);
-    pdf.setFont("Signika-Bold");
-    pdf.setFontSize(14);
-    pdf.text(displayCompanyName, 45, 14);
-    pdf.setFont("Signika-Regular");
-    pdf.setFontSize(9);
-    pdf.text(`${foormerlyName}`, 45, 18);
-    pdf.text(`${allData.AL2}`, 45, 22);
-    pdf.text(`${allData.AL3}`, 45, 26);
-    pdf.text(`${allData.AL4}`, 45, 30);
-    pdf.text(`${allData.Other}`, 45, 34);
-    pdf.text(`${allData.BillFooter}`, 45, 38);
-  }
+      //   pdf.addImage(logoImg, "PNG", 10, 9, 30, 30);
+      //   pdf.setFont("Signika-Bold");
+      //   pdf.setFontSize(14);
+      //   pdf.text(displayCompanyName, 45, 14);
+      //   pdf.setFont("Signika-Regular");
+      //   pdf.setFontSize(9);
+      // pdf.setFont("Signika-Regular"); 
+      //   pdf.setFontSize(9);
+      //   pdf.text(`${foormerlyName}`, 45, 18);
+      //   pdf.text(`${allData.AL2}`, 45, 22);
+      //   pdf.text(`${allData.AL3}`, 45, 26);
+      //   pdf.text(`${allData.AL4}`, 45, 30);
+      //   pdf.text(`${allData.Other}`, 45, 34);
+      //   pdf.text(`${allData.BillFooter}`,45,38)
+      if (shouldUseImage) {
+        // Use header image across top (new template)
+        pdf.addImage(headerImg, "PNG", 0, 6, 180, 34); // full width
+      } else {
+        // Old layout: logo + company name + address lines
+        pdf.addImage(logoImg, "PNG", 10, 9, 30, 30);
+        pdf.setFont("Signika-Bold");
+        pdf.setFontSize(14);
+        pdf.text(displayCompanyName, 45, 14);
+        pdf.setFont("Signika-Regular");
+        pdf.setFontSize(9);
+        pdf.text(`${foormerlyName}`, 45, 18);
+        pdf.text(`${allData.AL2}`, 45, 22);
+        pdf.text(`${allData.AL3}`, 45, 26);
+        pdf.text(`${allData.AL4}`, 45, 30);
+        pdf.text(`${allData.Other}`, 45, 34);
+        pdf.text(`${allData.BillFooter}`, 45, 38);
+      }
       pdf.addImage(qrCodeDataUrl, "PNG", 170, 9, 30, 30);
 
       pdf.setFontSize(10);
@@ -171,7 +171,7 @@ const shouldUseImage =
       pdf.setTextColor(0, 0, 0);
 
       let y = 45;
- pdf.setFontSize(9);
+      pdf.setFontSize(9);
 
       const fieldPairs = [
         [
@@ -505,14 +505,14 @@ const shouldUseImage =
       }
 
       const summaryFields = [
-       ...(
-    (allData.carporateSaleDoc === 0 ||
-      allData.carporateSaleDoc === "" ||
-      allData.carporateSaleDoc === null) &&
-    parseFloat(allData.freight) !== 0
-      ? [["Freight", allData.LESS_FRT_RATE, allData.freight]]
-      : []
-  ),
+        ...(
+          (allData.carporateSaleDoc === 0 ||
+            allData.carporateSaleDoc === "" ||
+            allData.carporateSaleDoc === null) &&
+            parseFloat(allData.freight) !== 0
+            ? [["Freight", allData.LESS_FRT_RATE, allData.freight]]
+            : []
+        ),
 
         ["Taxable Amount", "", allData.TaxableAmount],
         ...taxRows,
@@ -542,20 +542,20 @@ const shouldUseImage =
 
         let rateLabel = "";
 
-// GST rows
-if (label === "IGST" || label === "CGST" || label === "SGST") {
-  rateLabel = "%";
-}
+        // GST rows
+        if (label === "IGST" || label === "CGST" || label === "SGST") {
+          rateLabel = "%";
+        }
 
-// Other rows (Freight, RateDiff, Other Expense, TCS, etc.)
-else {
-  rateLabel = "/Qntl";
-}
+        // Other rows (Freight, RateDiff, Other Expense, TCS, etc.)
+        else {
+          rateLabel = "/Qntl";
+        }
 
-// Print rate only if exists
-if (rate !== null && rate !== undefined && rate !== "") {
-  pdf.text(`${formatReadableAmount(rate)}${rateLabel}`, 165, y + 3, { align: "center" });
-}
+        // Print rate only if exists
+        if (rate !== null && rate !== undefined && rate !== "") {
+          pdf.text(`${formatReadableAmount(rate)}${rateLabel}`, 165, y + 3, { align: "center" });
+        }
 
 
         // Format amount safely
@@ -604,7 +604,7 @@ if (rate !== null && rate !== undefined && rate !== "") {
         "   Once loaded and truck leaves godown, Said all responsibilities will be transfer to buyers account.",
         "- Please send the full amount in our account through RTGS before despatch the goods.",
         "   If the amount is not received in our account, Interest of 24% P.A. will be charged to the buyer.",
-         `- Subject to ${allData.companyCity} jurisdiction.`
+        `- Subject to ${allData.companyCity} jurisdiction.`
       ];
       notes.forEach((n, i) => pdf.text(n, 12, y + 13 + (i + 1) * 3));
 
@@ -657,10 +657,10 @@ if (rate !== null && rate !== undefined && rate !== "") {
       const footerHeight = 37;
       const poweredByY = footerY + footerHeight + 3;
 
-      if(shouldUseImage){
-      pdf.addImage(footerImg, "PNG", 0, footerY, 260, footerHeight);
-      }else{
-         pdf.addImage(footerImg1, "PNG", 0, footerY, 210, footerHeight);
+      if (shouldUseImage) {
+        pdf.addImage(footerImg, "PNG", 0, footerY, 260, footerHeight);
+      } else {
+        pdf.addImage(footerImg1, "PNG", 0, footerY, 210, footerHeight);
       }
 
       pdf.setFont("Signika-Medium");
@@ -671,21 +671,21 @@ if (rate !== null && rate !== undefined && rate !== "") {
       const pdfBlob = pdf.output("blob");
       const finalBlob = signWithDSC ? await signPdfWithDSC(pdfBlob, dscBox) : pdfBlob;
       const pdfUrl = URL.createObjectURL(finalBlob);
-       setPdfPreview({
-  url: pdfUrl,
-  data: {
-    ...allData,
-    sale_rate: rate, 
-   Doc_No: `SB${allData?.year || ""}-${allData?.doc_no || ""}`,
-   CompanyName: displayCompanyName
-  }
-});
+      setPdfPreview({
+        url: pdfUrl,
+        data: {
+          ...allData,
+          sale_rate: rate,
+          Doc_No: `SB${allData?.year || ""}-${allData?.doc_no || ""}`,
+          CompanyName: displayCompanyName
+        }
+      });
     };
   }
 
   const gstNo = sessionStorage.getItem("Company_GSTNO") || "";
 
-  
+
   const jkGSTs = [
     "27AAECJ8332R1ZV",
     "27AEJPS9860D1Z0",
@@ -696,21 +696,20 @@ if (rate !== null && rate !== undefined && rate !== "") {
   const isJK = jkGSTs.includes(gstNo.toUpperCase());
 
   let label = ''
-  if(isJK){
-label = "accounts_sale_bill_2"
+  if (isJK) {
+    label = "accounts_sale_bill_2"
   }
-else
-{
-  label = "SaleBill"
-}
+  else {
+    label = "SaleBill"
+  }
   return (
     <div id="pdf-content">
       {pdfPreview && (
         <PdfPreview
-  pdfData={pdfPreview.url}
-  apiData={pdfPreview.data}
-  label={label}
-/>
+          pdfData={pdfPreview.url}
+          apiData={pdfPreview.data}
+          label={label}
+        />
       )}
       <PrintButton disabledFeild={disabledFeild} fetchData={fetchData} label={"Sale Bill Print"} />
       {/* <PrintButton disabledFeild={disabledFeild} fetchData={() => fetchData(true)} label={"Sale Bill Print (DSC Signed)"} /> */}
