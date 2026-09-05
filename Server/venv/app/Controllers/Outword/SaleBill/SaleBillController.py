@@ -944,9 +944,41 @@ def Generate_SaleBill():
             DeliveryOrderHead.saleid == saleid
         ).scalar()
 
-        if existing_sb_no: 
+        if existing_sb_no:
             return jsonify({"error": "Sale Bill is Already Genrated.!"}), 400
-        
+
+        do_head_for_limit = DeliveryOrderHead.query.filter_by(
+            Year_Code=Year_Code, company_code=Company_Code, saleid=saleid
+        ).first()
+        sale_head_for_limit = SaleBillHead.query.filter_by(saleid=saleid).first()
+
+        if do_head_for_limit and sale_head_for_limit and do_head_for_limit.SaleBillTo:
+            bill_to_ac_code = do_head_for_limit.SaleBillTo
+            sale_bill_amount = float(sale_head_for_limit.Bill_Amount or 0)
+
+            account_row = db.session.execute(
+                text('''SELECT Limit_By, Bal_Limit FROM dbo.nt_1_accountmaster
+                        WHERE Ac_Code = :ac_code AND company_code = :company_code'''),
+                {'ac_code': bill_to_ac_code, 'company_code': Company_Code}
+            ).fetchone()
+
+            if account_row and (account_row.Limit_By or '').strip().upper() == 'Y':
+                bal_limit = float(account_row.Bal_Limit) if account_row.Bal_Limit is not None else 0.0
+
+                gledger_row = db.session.execute(
+                    text('''SELECT SUM(CASE DRCR WHEN 'D' THEN AMOUNT WHEN 'C' THEN -AMOUNT END) AS Balance
+                            FROM dbo.nt_1_gledger
+                            WHERE AC_CODE = :ac_code AND COMPANY_CODE = :company_code AND YEAR_CODE = :year_code'''),
+                    {'ac_code': bill_to_ac_code, 'company_code': Company_Code, 'year_code': Year_Code}
+                ).fetchone()
+                gledger_balance = float(gledger_row.Balance) if gledger_row and gledger_row.Balance is not None else 0.0
+
+
+                available_limit = gledger_balance + bal_limit - sale_bill_amount
+
+                if sale_bill_amount > available_limit:
+                    return jsonify({"error": "This party has exceeded their credit limit."}), 400
+
         max_doc_no = get_max_doc_no(Company_Code,Year_Code)
         updated_doc_no = max_doc_no + 1
 

@@ -14,7 +14,16 @@ const AccountMasterByDate = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [searchText, setSearchText] = useState('');
-  
+  // Debounced so filtering (over potentially thousands of rows) only re-runs
+  // once typing pauses, instead of on every keystroke.
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
+
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearchText(searchText), 250);
+    return () => clearTimeout(handle);
+  }, [searchText]);
+
+
   const [acType, setAcType] = useState('A'); 
   const [groupCode, setGroupCode] = useState(""); 
   const [groupName, setGroupName] = useState("");
@@ -61,23 +70,21 @@ const AccountMasterByDate = () => {
   };
 
   const filteredData = useMemo(() => {
+    const term = debouncedSearchText.trim().toLowerCase();
     return data.filter(item => {
-      const matchesSearch = !searchText || 
-                            item.Ac_Name_E?.toLowerCase().includes(searchText.toLowerCase()) ||
-                            item.cityname?.toLowerCase().includes(searchText.toLowerCase()) ||
-                            item.Gst_No?.toLowerCase().includes(searchText.toLowerCase()) ||
-                            item.CompanyPan?.toLowerCase().includes(searchText.toLowerCase()) ||
-                            item.Ac_Code?.toString().includes(searchText);
-                               const matchesType = (acType === 'A' || !acType) 
-      ? true  
-      : item.Ac_type === acType
-      // const matchesType = acType ? item.Ac_type === acType : true;
+      const matchesSearch = !term ||
+                            item.Ac_Name_E?.toLowerCase().includes(term) ||
+                            item.cityname?.toLowerCase().includes(term) ||
+                            item.Gst_No?.toLowerCase().includes(term) ||
+                            item.CompanyPan?.toLowerCase().includes(term) ||
+                            item.Ac_Code?.toString().includes(term);
+      const matchesType = (acType === 'A' || !acType) ? true : item.Ac_type === acType;
       const matchesGroup = groupCode ? String(item.Group_Code).trim() === String(groupCode).trim() : true;
       const itemStateCode = item.GstStateCode || item.Gst_State_Code || item.GSTStateCode;
       const matchesState = AcStateCode ? String(itemStateCode).trim() === String(AcStateCode).trim() : true;
       return matchesSearch && matchesType && matchesGroup && matchesState;
     });
-  }, [data, searchText, acType, groupCode, AcStateCode]);
+  }, [data, debouncedSearchText, acType, groupCode, AcStateCode]);
 
 
   const handleExportExcel = () => {
@@ -135,10 +142,10 @@ const AccountMasterByDate = () => {
       )}
 
       <div className="max-w-[1650px] mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-          <div className="lg:col-span-5 bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-200">
-            <h1 className="text-xl font-black tracking-tight text-indigo-900 mb-4">Account Master Analytics</h1>
-            <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-4">
+          <div className="lg:col-span-5 bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200">
+            <h1 className="text-xl font-black tracking-tight text-indigo-900 mb-3">Account Master Analytics</h1>
+            <div className="space-y-3">
               <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                 <input type="date" value={fromDate} onChange={(e)=>setFromDate(e.target.value)} className="bg-transparent border-none text-[12px] font-bold focus:ring-0 w-full"/>
                 <input type="date" value={toDate} onChange={(e)=>setToDate(e.target.value)} className="bg-transparent border-none text-[12px] font-bold focus:ring-0 w-full"/>
@@ -191,9 +198,9 @@ const AccountMasterByDate = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-7 bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-200">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-900 mb-4">Regional Distribution</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+          <div className="lg:col-span-7 bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-200 self-start">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-900 mb-3">Regional Distribution</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
               {stateStats.length > 0 ? stateStats.map((st, i) => (
                 <div key={i}>
                   <div className="flex justify-between items-end mb-1">
@@ -212,48 +219,48 @@ const AccountMasterByDate = () => {
         </div>
 
         <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden mb-20">
-          <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-            <input type="text" placeholder="Search..." value={searchText} onChange={(e)=>setSearchText(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs w-72 outline-none focus:ring-2 focus:ring-indigo-100" />
+          <div className="px-6 py-3 border-b border-slate-100 flex justify-between items-center bg-white">
+            <input type="text" placeholder="Search..." value={searchText} onChange={(e)=>setSearchText(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-1.5 text-xs w-72 outline-none focus:ring-2 focus:ring-indigo-100" />
             <div className="flex items-center gap-4">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 Showing: <span className="text-indigo-600 font-black">{filteredData.length}</span> Records
               </span>
-              <button onClick={handleExportExcel} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase hover:bg-indigo-600 transition-colors">Export Excel</button>
+              <button onClick={handleExportExcel} className="bg-slate-900 text-white px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase hover:bg-indigo-600 transition-colors">Export Excel</button>
             </div>
           </div>
 
-          <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+          <div className="max-h-[75vh] overflow-y-auto custom-scrollbar">
             <table className="w-full text-left border-separate border-spacing-0">
               <thead className="sticky top-0 bg-white z-10 shadow-sm">
                 <tr className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">
-                  <th className="px-6 py-4 border-b border-slate-100">Code</th>
-                  <th className="px-6 py-4 border-b border-slate-100">Ac Type</th>
-                  <th className="px-6 py-4 border-b border-slate-100">Account Name</th>
-                  <th className="px-6 py-4 border-b border-slate-100">Group Info</th>
-                  <th className="px-6 py-4 border-b border-slate-100">Tax Details (PAN/GST)</th>
-                  <th className="px-6 py-4 border-b border-slate-100">Location (State Code)</th>
-                  <th className="px-6 py-4 border-b border-slate-100 text-nowrap">Created Date</th>
+                  <th className="px-4 py-2.5 border-b border-slate-100">Code</th>
+                  <th className="px-4 py-2.5 border-b border-slate-100">Ac Type</th>
+                  <th className="px-4 py-2.5 border-b border-slate-100">Account Name</th>
+                  <th className="px-4 py-2.5 border-b border-slate-100">Group Info</th>
+                  <th className="px-4 py-2.5 border-b border-slate-100">Tax Details (PAN/GST)</th>
+                  <th className="px-4 py-2.5 border-b border-slate-100">Location (State Code)</th>
+                  <th className="px-4 py-2.5 border-b border-slate-100 text-nowrap">Created Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filteredData.map((item, idx) => (
                   <tr key={idx} className="hover:bg-indigo-50/40 transition-colors group">
-                    <td className="px-6 py-3 font-bold text-[11px] text-slate-400">{item.Ac_Code}</td>
-                    <td className="px-6 py-3 font-black text-indigo-900 text-[12px] uppercase">{item.Ac_type}</td>
-                    <td className="px-6 py-3 font-black text-indigo-900 text-[12px] uppercase">{item.Ac_Name_E}</td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-1.5 font-bold text-[11px] text-slate-400">{item.Ac_Code}</td>
+                    <td className="px-4 py-1.5 font-black text-indigo-900 text-[12px] uppercase">{item.Ac_type}</td>
+                    <td className="px-4 py-1.5 font-black text-indigo-900 text-[12px] uppercase">{item.Ac_Name_E}</td>
+                    <td className="px-4 py-1.5 leading-tight">
                       <div className="text-[12px] font-bold text-emerald-700">{item.Group_Code}</div>
-                      <div className="text-[12px] text-slate-500 uppercase">{item.group_Name_E}</div>
+                      <div className="text-[11px] text-slate-500 uppercase">{item.group_Name_E}</div>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-1.5 leading-tight">
                       <div className="text-[12px] font-mono font-bold text-slate-700">{item.CompanyPan || 'NO PAN'}</div>
-                      <div className="text-[12px] font-mono text-blue-600">{item.Gst_No || 'NO GST'}</div>
+                      <div className="text-[11px] font-mono text-blue-600">{item.Gst_No || 'NO GST'}</div>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-1.5 leading-tight">
                       <div className="text-[12px] font-bold text-slate-700 uppercase">{item.cityname}</div>
-                      <div className="text-[12px] text-slate-500 text-slate-700 uppercase">{item.State_Name}</div>
+                      <div className="text-[11px] text-slate-500 uppercase">{item.State_Name}</div>
                     </td>
-                    <td className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase">{formatDate(item.Created_Date)}</td>
+                    <td className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase">{formatDate(item.Created_Date)}</td>
                   </tr>
                 ))}
               </tbody>

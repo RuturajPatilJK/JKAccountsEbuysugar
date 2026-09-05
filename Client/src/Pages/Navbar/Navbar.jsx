@@ -467,6 +467,7 @@ const Navbar = () => {
           icon: UserCircleIcon,
           subItems: [
             { to: "/AccountMaster-utility", icon: UserCircleIcon, text: "Account Master" },
+            { to: "/RiskManagement", icon: CursorArrowRaysIcon, text: "Risk Management" },
             { to: "/CustomerLimit", icon: CursorArrowRaysIcon, text: "Customer Limits" },
             { to: "/financial-groups-utility", icon: BuildingLibraryIcon, text: "Financial Groups" },
             { to: "/city-master-utility", icon: MapPinIcon, text: "City Master" },
@@ -561,7 +562,7 @@ const Navbar = () => {
             { to: "/daybook", icon: DocumentTextIcon, text: "Day Book" },
             { to: "/multiple-ledger", icon: BookOpenIcon, text: "Multiple Ledger" },
             { to: "/bank-book", icon: BuildingLibraryIcon, text: "Bank Book" },
-            { to: "/account-master-print", icon: ClipboardDocumentListIcon, text: "Account Master Print" },
+            // { to: "/account-master-print", icon: ClipboardDocumentListIcon, text: "Account Master Print" },
             { to: "/group-ledger", icon: BookOpenIcon, text: "Group Ledger" },
             { to: "/interest-statement", icon: CalculatorIcon, text: "Interest Statement" }
           ]

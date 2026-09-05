@@ -32,7 +32,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper, Grid, Card, CardContent
+  Paper, Grid, Card, CardContent, Chip
 } from "@mui/material";
 import UserAuditInfo from "../../../../Common/UserAuditInfo/UserAuditInfo";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -279,6 +279,15 @@ const AccountMaster = () => {
     Mobile_No: "",
     Is_Login: "",
     IFSC: "",
+    Benificiary_Name: "",
+    Branch_Name: "",
+    Benificiary_Name1: "",
+    Bank_Name1: "",
+    Bank_Ac_No1: "",
+    IFSC1: "",
+    Branch_Name1: "",
+    Company_Type: "",
+    Vendor_Approved: "",
     FSSAI: "",
     Branch1OB: 0.0,
     Branch2OB: 0.0,
@@ -567,6 +576,13 @@ const AccountMaster = () => {
       case "Bank_Name":
       case "Bank_Ac_No":
       case "IFSC":
+      case "Benificiary_Name":
+      case "Branch_Name":
+      case "Benificiary_Name1":
+      case "Bank_Name1":
+      case "Bank_Ac_No1":
+      case "IFSC1":
+      case "Branch_Name1":
       case "Mobile_No":
       case "OffPhone":
       case "Fax":
@@ -1886,6 +1902,19 @@ const AccountMaster = () => {
                     onInput: validateNumericInput,
                   }}
                 />
+
+                <TextField
+                  label="Company Type"
+                  id="Company_Type"
+                  name="Company_Type"
+                  value={formData.Company_Type}
+                  size="small"
+                  autoComplete="off"
+                  disabled
+                  sx={{ width: "15%" }}
+                  InputLabelProps={{ shrink: true }}
+                />
+
               </Box>
 
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, marginTop: 1 }}>
@@ -1952,8 +1981,13 @@ const AccountMaster = () => {
                     shrink: true,
                   }}
                 />
-
-
+                {/* <Chip
+                  label={formData.Vendor_Approved === "Y" ? "Vendor Approved" : "Not Verified Vendor"}
+                  color={formData.Vendor_Approved === "Y" ? "success" : "default"}
+                  size="small"
+                  sx={{ fontWeight: "bold" }}
+                />
+ */}
 
               </Box>
 
@@ -1980,7 +2014,6 @@ const AccountMaster = () => {
                     shrink: true,
                   }}
                 />
-
 
                 <FormControl size="small" fullWidth sx={{ width: "12vh" }}>
                   <InputLabel>Limit</InputLabel>
@@ -2237,45 +2270,10 @@ const AccountMaster = () => {
 
               </Box>
 
+
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, marginTop: 1 }}>
-                <TextField
-                  label="Bank Name"
-                  id="Bank_Name"
-                  name="Bank_Name"
-                  value={formData.Bank_Name}
-                  size="small"
-                  autoComplete="off"
-                  onChange={handleChange}
-                  disabled={
-                    !isFieldEnabled("Bank_Name") ||
-                    (!isEditing && addOneButtonEnabled)
-                  }
-                  sx={{
-                    width: "15%",
-                  }}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
-                <TextField
-                  label="Bank A/c No"
-                  id="Bank_Ac_No"
-                  name="Bank_Ac_No"
-                  value={formData.Bank_Ac_No}
-                  onChange={handleChange}
-                  autoComplete="off"
-                  size="small"
-                  disabled={
-                    !isFieldEnabled("Bank_Ac_No") ||
-                    (!isEditing && addOneButtonEnabled)
-                  }
-                  sx={{
-                    width: "15%",
-                  }}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
+
+
                 <TextField
                   label="Bank Opening Bal"
                   id="Bank_Opening"
@@ -2346,6 +2344,189 @@ const AccountMaster = () => {
                     <MenuItem value="C">Credit</MenuItem>
                   </Select>
                 </FormControl>
+
+              </Box>
+
+
+
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, marginTop: 1 }}>
+                <TextField
+                  label="Beneficiary Name (Primary)"
+                  id="Benificiary_Name"
+                  name="Benificiary_Name"
+                  value={formData.Benificiary_Name}
+                  onChange={handleChange}
+                  autoComplete="off"
+                  size="small"
+                  disabled={
+                    !isFieldEnabled("Benificiary_Name") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{
+                    width: "15%",
+                  }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+                <TextField
+                  label="Bank Name (Primary)"
+                  id="Bank_Name"
+                  name="Bank_Name"
+                  value={formData.Bank_Name}
+                  size="small"
+                  autoComplete="off"
+                  onChange={handleChange}
+                  disabled={
+                    !isFieldEnabled("Bank_Name") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{
+                    width: "15%",
+                  }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+                <TextField
+                  label="Bank A/c No (Primary)"
+                  id="Bank_Ac_No"
+                  name="Bank_Ac_No"
+                  value={formData.Bank_Ac_No}
+                  onChange={handleChange}
+                  autoComplete="off"
+                  size="small"
+                  disabled={
+                    !isFieldEnabled("Bank_Ac_No") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{
+                    width: "15%",
+                  }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+
+                <TextField
+                  label="Bank IFSC Code (Primary)"
+                  id="IFSC"
+                  name="IFSC"
+                  size="small"
+                  value={formData.IFSC}
+                  autoComplete="off"
+                  onChange={handleChange}
+                  disabled={
+                    !isFieldEnabled("IFSC") || (!isEditing && addOneButtonEnabled)
+                  }
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+
+                <TextField
+                  label="Branch Name (Primary)"
+                  id="Branch_Name"
+                  name="Branch_Name"
+                  value={formData.Branch_Name}
+                  onChange={handleChange}
+                  autoComplete="off"
+                  size="small"
+                  disabled={
+                    !isFieldEnabled("Branch_Name") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{
+                    width: "15%",
+                  }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+
+              </Box>
+
+
+
+
+
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, marginTop: 1, alignItems: "center" }}>
+                <TextField
+                  label="Beneficiary Name (Additional)"
+                  id="Benificiary_Name1"
+                  name="Benificiary_Name1"
+                  value={formData.Benificiary_Name1}
+                  size="small"
+                  autoComplete="off"
+                  onChange={handleChange}
+                  disabled={
+                    !isFieldEnabled("Benificiary_Name1") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{ width: "15%" }}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="Bank Name (Additional)"
+                  id="Bank_Name1"
+                  name="Bank_Name1"
+                  value={formData.Bank_Name1}
+                  size="small"
+                  autoComplete="off"
+                  onChange={handleChange}
+                  disabled={
+                    !isFieldEnabled("Bank_Name1") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{ width: "15%" }}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="Bank A/c No (Additional)"
+                  id="Bank_Ac_No1"
+                  name="Bank_Ac_No1"
+                  value={formData.Bank_Ac_No1}
+                  size="small"
+                  autoComplete="off"
+                  onChange={handleChange}
+                  disabled={
+                    !isFieldEnabled("Bank_Ac_No1") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{ width: "15%" }}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="Bank IFSC Code (Additional)"
+                  id="IFSC1"
+                  name="IFSC1"
+                  value={formData.IFSC1}
+                  size="small"
+                  autoComplete="off"
+                  onChange={handleChange}
+                  disabled={
+                    !isFieldEnabled("IFSC1") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{ width: "15%" }}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="Branch Name (Additional)"
+                  id="Branch_Name1"
+                  name="Branch_Name1"
+                  value={formData.Branch_Name1}
+                  size="small"
+                  autoComplete="off"
+                  onChange={handleChange}
+                  disabled={
+                    !isFieldEnabled("Branch_Name1") ||
+                    (!isEditing && addOneButtonEnabled)
+                  }
+                  sx={{ width: "15%" }}
+                  InputLabelProps={{ shrink: true }}
+                />
+
               </Box>
 
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
@@ -2576,21 +2757,7 @@ const AccountMaster = () => {
                     shrink: true,
                   }}
                 />
-                <TextField
-                  label="Bank IFSC Code"
-                  id="IFSC"
-                  name="IFSC"
-                  size="small"
-                  value={formData.IFSC}
-                  autoComplete="off"
-                  onChange={handleChange}
-                  disabled={
-                    !isFieldEnabled("IFSC") || (!isEditing && addOneButtonEnabled)
-                  }
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
+
 
                 <TextField
                   label="FSSAI LIC No."
@@ -2837,7 +3004,7 @@ const AccountMaster = () => {
               display: "flex",
               justifyContent: "flex-end",
               alignItems: "flex-start",
-              marginTop: -52,
+              marginTop: -70,
             }}
           >
             <TableContainer
@@ -2885,7 +3052,7 @@ const AccountMaster = () => {
               </div>
             </div>
           )}
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 8 }}>
             <Dialog open={showPopup} onClose={closePopup} fullWidth>
               <DialogTitle>
                 {selectedUser.Id ? "Edit User" : "Add User"}

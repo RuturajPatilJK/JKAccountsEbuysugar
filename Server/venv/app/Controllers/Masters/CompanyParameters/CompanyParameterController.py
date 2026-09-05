@@ -6,8 +6,6 @@ import os
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
-
-
 # Get the base URL from environment variables
 API_URL = os.getenv('API_URL')
 

@@ -85,7 +85,7 @@ def getdata_accountmaster():
                   dbo.nt_1_accountmaster.accoid
 FROM     dbo.nt_1_accountmaster LEFT OUTER JOIN
                   dbo.nt_1_citymaster ON dbo.nt_1_accountmaster.cityid = dbo.nt_1_citymaster.cityid
-                 where dbo.nt_1_accountmaster.Company_Code = :company_code
+                 where dbo.nt_1_accountmaster.Company_Code = :company_code AND (dbo.nt_1_accountmaster.Vendor_Approved <> 'N')
                  order by  dbo.nt_1_accountmaster.Ac_Code desc
                                  '''
             )
@@ -101,6 +101,44 @@ FROM     dbo.nt_1_accountmaster LEFT OUTER JOIN
 
         socketio.emit("getAll_accounts")
         return jsonify(response), 200
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
+
+# Account Master Analytics report - accounts created within a date range
+@app.route(API_URL + "/getAccountMasterByDateRange", methods=["GET"])
+def get_accountmaster_by_date_range():
+    try:
+        company_code = request.args.get('company_code')
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+
+        if not all([company_code, from_date, to_date]):
+            return jsonify({"error": "Missing 'company_code', 'from_date' or 'to_date' parameter"}), 400
+
+        query = ('''SELECT am.Ac_Code, am.Ac_type, am.Ac_Name_E, am.Group_Code, gm.group_Name_E,
+                  am.CompanyPan, am.Gst_No, cm.city_name_e AS cityname, gst.State_Name,
+                  am.GSTStateCode, am.Created_Date
+FROM     dbo.nt_1_accountmaster am LEFT OUTER JOIN
+                  dbo.nt_1_citymaster cm ON am.cityid = cm.cityid LEFT OUTER JOIN
+                  dbo.nt_1_bsgroupmaster gm ON am.Group_Code = gm.group_Code AND am.Company_Code = gm.Company_Code LEFT OUTER JOIN
+                  dbo.gststatemaster gst ON am.GSTStateCode = gst.State_Code
+                 WHERE am.Company_Code = :company_code
+                   AND am.Created_Date >= :from_date AND am.Created_Date <= :to_date
+                 ORDER BY am.Ac_Code DESC
+                                 '''
+            )
+        result = db.session.execute(text(query), {
+            "company_code": company_code,
+            "from_date": from_date,
+            "to_date": to_date,
+        })
+
+        data = [dict(row._mapping) for row in result.fetchall()]
+
+        return jsonify({"data": data}), 200
 
     except Exception as e:
         print(e)
@@ -147,7 +185,41 @@ def getaccountmasterByid():
 
     except Exception as e:
         return jsonify({"error": "Internal server error", "message": str(e)}), 500
-    
+
+
+# Risk Management 
+
+@app.route(API_URL + "/update-account-risk-limit", methods=["PUT"])
+def update_account_risk_limit():
+    try:
+        data = request.get_json() or {}
+        accoid = data.get('accoid')
+        limit_by = data.get('Limit_By')
+        bal_limit = data.get('Bal_Limit')
+
+        if not accoid:
+            return jsonify({"error": "Missing 'accoid' parameter"}), 400
+
+        account = AccountMaster.query.filter_by(accoid=accoid).first()
+        if not account:
+            return jsonify({"error": "Account not found"}), 404
+
+        account.Limit_By = limit_by
+        account.Bal_Limit = bal_limit
+        db.session.commit()
+
+        return jsonify({
+            "message": "Risk limit updated successfully",
+            "accoid": accoid,
+            "Limit_By": account.Limit_By,
+            "Bal_Limit": float(account.Bal_Limit) if account.Bal_Limit is not None else None,
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Internal server error", "message": str(e)}), 500
+
+
 @app.route(API_URL + "/getNextAcCode_AccountMaster", methods=["GET"])
 def getNextAcCode_AccountMaster():
     try:
@@ -960,7 +1032,6 @@ def check_AcCode_usage():
         }), 500
     
 
-
 @app.route(API_URL + '/accountmaster-address', methods=['GET'])
 def get_accountmaster_address():
     try:
@@ -1158,15 +1229,13 @@ def insertShetkari_accountmaster():
         new_head = AccountMaster(**headData)
         db.session.add(new_head)
 
-        db.session.flush()  # <- important
+        db.session.flush() 
         auto_id = new_head.accoid
         createdDetails = []
         updatedDetails = []
         deletedDetailIds = []
 
-        
         db.session.commit()
-        
         
         return jsonify({
             "message": "Data inserted successfully",

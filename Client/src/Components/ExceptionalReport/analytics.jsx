@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { UserCircleIcon, ShoppingBagIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, ShoppingBagIcon, ShieldCheckIcon, ChartPieIcon } from '@heroicons/react/24/outline';
 
 function Analytics() {
     const location = useLocation();
@@ -19,6 +19,13 @@ function Analytics() {
             icon: ShoppingBagIcon,
             iconColor: 'text-amber-600',
             iconBg: 'bg-amber-50'
+        },
+        {
+            name: 'Top Buyer Percentage Wise Report',
+            path: '/top-buyer-percentage-report',
+            icon: ChartPieIcon,
+            iconColor: 'text-purple-600',
+            iconBg: 'bg-purple-50'
         },
 
                 {

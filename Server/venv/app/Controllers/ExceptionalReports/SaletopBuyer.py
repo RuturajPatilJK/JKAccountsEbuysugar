@@ -18,6 +18,64 @@ def decimal_to_float(value):
         return 0.0
 
 
+@app.route(API_URL + '/top-buyer-percentage-report', methods=['GET'])
+def top_buyer_percentage_report():
+    try:
+        company_code = request.args.get('Company_Code') or request.args.get('company_code')
+        year_code = request.args.get('Year_Code') or request.args.get('year_code')
+
+        if not company_code or not year_code:
+            return jsonify({'error': 'Company_Code and Year_Code are required'}), 400
+
+        params = {'company_code': company_code, 'year_code': year_code}
+
+        query_str = '''
+            SELECT
+                a.Ac_Code,
+                a.Ac_Name_E,
+                a.accoid,
+                s.yearly_turnover,
+                s.yearly_turnover * 100.0 / t.total_turnover AS turnover_percentage,
+                s.Company_Code,
+                s.Year_Code
+            FROM (
+                SELECT
+                    ac,
+                    Company_Code,
+                    Year_Code,
+                    SUM(TaxableAmount) AS yearly_turnover
+                FROM dbo.nt_1_sugarsale
+                WHERE Company_Code = :company_code AND Year_Code = :year_code
+                GROUP BY ac, Company_Code, Year_Code
+            ) s
+            INNER JOIN dbo.nt_1_accountmaster a
+                ON s.ac = a.accoid
+            CROSS JOIN (
+                SELECT SUM(TaxableAmount) AS total_turnover
+                FROM dbo.nt_1_sugarsale
+                WHERE Company_Code = :company_code AND Year_Code = :year_code
+            ) t
+            ORDER BY turnover_percentage DESC
+        '''
+
+        with db.session.begin():
+            query = db.session.execute(text(query_str), params)
+            results = query.mappings().all()
+            data = [dict(row) for row in results]
+
+            for row in data:
+                row['yearly_turnover'] = decimal_to_float(row['yearly_turnover'])
+                row['turnover_percentage'] = decimal_to_float(row['turnover_percentage'])
+
+        return jsonify(data)
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
 @app.route(API_URL + '/sale-top-buyers', methods=['GET'])
 def sale_top_buyers():
     try:

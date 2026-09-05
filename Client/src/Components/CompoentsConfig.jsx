@@ -240,6 +240,7 @@ import Analytics from './ExceptionalReport/analytics.jsx';
 import PurchaseTopSellersNew from './ExceptionalReport/purchasereport';
 import SaleTopBuyersNew from './ExceptionalReport/salebuyerreport.jsx';
 import AccountMasterAnalytics from './ExceptionalReport/AccountMasterAnalytics.jsx';
+import TopBuyerPercentageReport from './ExceptionalReport/TopBuyerPercentageReport.jsx';
 import PartywiseSaleReport from '../Components/BusinessRelated/StockReport/Register/PartywiseSaleReport.jsx';
 
 
@@ -251,6 +252,7 @@ import RailwayRackUtility from './RailwayRackBuy/RailwayRackMaster/RailwayRackUt
 
 //eBuySugar
 import CustomerLimit from './Master/AccountInformation/CustomerLimit/CustomerLimit.jsx';
+import RiskManagement from './Master/AccountInformation/RiskManagement/RiskManagement.jsx';
 import EBuySugarHub from './EBuySugarian/EBuySugarHub.jsx';
 import EbuySugarSelfStock from './EBuySugarian/EbuySugarSelfStock/EbuySugarSelfStock.jsx';
 
@@ -1224,6 +1226,10 @@ const routes = [
     element: AccountMasterAnalytics
   },
   {
+    path: '/top-buyer-percentage-report',
+    element: TopBuyerPercentageReport
+  },
+  {
     path: '/PartywiseSaleReport',
     element: PartywiseSaleReport
   },
@@ -1239,6 +1245,10 @@ const routes = [
   {
     path: '/CustomerLimit',
     element: CustomerLimit
+  },
+  {
+    path: '/RiskManagement',
+    element: RiskManagement
   },
   {
     path: '/ebuysugar',

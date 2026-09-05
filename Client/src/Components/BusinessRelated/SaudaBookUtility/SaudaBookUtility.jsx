@@ -728,14 +728,14 @@ const handleExMillSelectionChange = (e) => {
               <TextField size="small" fullWidth name="Commission_Rate" value={formData.Commission_Rate} disabled />
             </Grid>
 
-            <Grid item xs={12} sm={4} display="flex" alignItems="center">
+            <Grid item xs={12} sm={4} display="flex" alignItems="center" >
               <Typography fontWeight="bold">Dates :</Typography>
             </Grid>
             <Grid item xs={12} sm={8}>
               <Box display="flex" gap={2}>
-                <TextField type="date" size="small" fullWidth name="Sauda_Date" label="Sauda Date" value={formData.Sauda_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
-                <TextField type="date" size="small" fullWidth name="Lifting_Date" label="Payment Date" value={formData.Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
-                <TextField type="date" size="small" fullWidth name="Sauda_Lifting_Date" label="Sauda Lifting Date" value={formData.Sauda_Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
+                <TextField style={{ marginTop:"10px"}} type="date" size="small" fullWidth name="Sauda_Date" label="Sauda Date" value={formData.Sauda_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
+                <TextField style={{ marginTop:"10px"}} type="date" size="small" fullWidth name="Lifting_Date" label="Payment Date" value={formData.Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
+                <TextField style={{ marginTop:"10px"}} type="date" size="small" fullWidth name="Sauda_Lifting_Date" label="Sauda Lifting Date" value={formData.Sauda_Lifting_Date} onChange={handleInputChange} InputLabelProps={{ shrink: true }} />
               </Box>
             </Grid>
 

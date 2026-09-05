@@ -521,7 +521,9 @@ const PurchaseTDSRegister = () => {
     const groupedData = useMemo(() => {
         const groups = {};
         reportData.forEach((item) => {
-            const key = `${item.Party_Code}-${item.Name_Of_Party}-${item.Pan}`;
+           
+            const pan = (item.Pan || '').trim();
+            const key = pan !== '' ? pan : `NOPAN-${item.Party_Code}-${item.Name_Of_Party}`;
             if (!groups[key]) {
                 groups[key] = {
                     ...item,

@@ -6,8 +6,6 @@ import os
 API_URL = os.getenv('API_URL')
 import json
 
-
-
 @app.route(API_URL + "/getcitybystatecode", methods=["GET"])
 def getcitybystatecode():
     try:
